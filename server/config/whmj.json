@@ -1,0 +1,21 @@
+{
+  "env": "prod",
+  "@env": "运行环境标识，仅用于日志与配置区分",
+  "debug": false,
+  "@debug": "关闭调试日志以降低线上 IO",
+  "print_level": "info",
+  "@print_level": "cherry 引擎日志级别",
+  "node": {
+    "@node": "节点分组，分组名即 nodeType，客户端路由前缀必须与之一致",
+    "whmj": [
+      {
+        "enabled": true,
+        "node_id": "whmj-1",
+        "address": ":9111",
+        "__settings__": {
+          "@address": "WebSocket 监听端口，由 nginx 以 /whmj-ws/ 反向代理到 127.0.0.1:9111"
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,61 @@
+{
+ "tiles": {
+  "tile_back": "tiles/tile_back.png",
+  "tile_back_dark": "tiles/tile_back_dark.png",
+  "tile_b1": "tiles/tile_b1.png",
+  "tile_b2": "tiles/tile_b2.png",
+  "tile_b3": "tiles/tile_b3.png",
+  "tile_b4": "tiles/tile_b4.png",
+  "tile_b5": "tiles/tile_b5.png",
+  "tile_b6": "tiles/tile_b6.png",
+  "tile_b7": "tiles/tile_b7.png",
+  "tile_b8": "tiles/tile_b8.png",
+  "tile_b9": "tiles/tile_b9.png",
+  "tile_t1": "tiles/tile_t1.png",
+  "tile_t2": "tiles/tile_t2.png",
+  "tile_t3": "tiles/tile_t3.png",
+  "tile_t4": "tiles/tile_t4.png",
+  "tile_t5": "tiles/tile_t5.png",
+  "tile_t6": "tiles/tile_t6.png",
+  "tile_t7": "tiles/tile_t7.png",
+  "tile_t8": "tiles/tile_t8.png",
+  "tile_t9": "tiles/tile_t9.png",
+  "tile_w1": "tiles/tile_w1.png",
+  "tile_w2": "tiles/tile_w2.png",
+  "tile_w3": "tiles/tile_w3.png",
+  "tile_w4": "tiles/tile_w4.png",
+  "tile_w5": "tiles/tile_w5.png",
+  "tile_w6": "tiles/tile_w6.png",
+  "tile_w7": "tiles/tile_w7.png",
+  "tile_w8": "tiles/tile_w8.png",
+  "tile_w9": "tiles/tile_w9.png"
+ },
+ "audio": [
+  "audio/bgm.mp3",
+  "audio/click.mp3",
+  "audio/countdown.mp3",
+  "audio/dingque.mp3",
+  "audio/discard.mp3",
+  "audio/draw.mp3",
+  "audio/gang.mp3",
+  "audio/hu.mp3",
+  "audio/lose.mp3",
+  "audio/peng.mp3",
+  "audio/win.mp3"
+ ],
+ "ui": [
+  "ui/avatar.png",
+  "ui/avatar_frame.png",
+  "ui/avatar_light.png",
+  "ui/btn_green.png",
+  "ui/btn_grey.png",
+  "ui/btn_yellow.png"
+ ],
+ "bg": [
+  "bg/lobby.jpg",
+  "bg/settle_lose.jpg",
+  "bg/settle_panel.jpg",
+  "bg/settle_win.jpg",
+  "bg/table.jpg"
+ ]
+}
