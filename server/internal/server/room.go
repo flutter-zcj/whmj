@@ -11,6 +11,7 @@ import (
 	cproto "github.com/cherry-game/cherry/net/proto"
 
 	"github.com/zbcx/whmj/internal/game"
+	"github.com/zbcx/whmj/internal/rule"
 	"github.com/zbcx/whmj/internal/store"
 )
 
@@ -578,6 +579,7 @@ type Snapshot struct {
 	Last     int           `json:"last"`
 	LastSeat int           `json:"lastSeat"`
 	Remain   int           `json:"remain"`
+	RoundSet rule.Round    `json:"roundSet"`
 }
 
 // buildSnapshot 组装某个座位的完整视图，未开局时只带座位信息。
@@ -592,6 +594,7 @@ func (r *Room) buildSnapshot(seat int) *Snapshot {
 	}
 
 	snap.Phase = string(r.game.Phase)
+	snap.RoundSet = r.game.Round
 	snap.Turn = r.game.TurnSeat()
 	snap.Remain = r.game.RemainCount()
 	snap.Last, snap.LastSeat = r.game.LastDiscard()
@@ -625,13 +628,14 @@ func (r *Room) seatViews() []SeatView {
 		if r.game != nil && i < len(r.game.Players) {
 			p := r.game.Players[i]
 			v.Score = p.Score
-			/* 牌局内部 Que 用 0 表示未定缺、1..3 表示万筒条，这里换算成 0..2 */
 			v.Ting = p.Ting
 			v.Finished = p.Finished
 			v.IsBanker = p.IsBanker
 			v.TileCount = p.Hand.Total()
 			v.Melds = p.Melds
+			v.Extras = p.Extras
 			v.Discards = p.Discards
+			v.Opened = p.Opened
 		}
 
 		views = append(views, v)

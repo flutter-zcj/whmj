@@ -111,8 +111,13 @@ func TestGameDeal(t *testing.T) {
 		t.Fatalf("发牌后应直接进入出牌阶段，实际 %s", g.Phase)
 	}
 
-	if g.RemainCount() != rule.WallSize-53 {
-		t.Fatalf("牌墙余量应为 %d，实际 %d", rule.WallSize-53, g.RemainCount())
+	// 发牌 53 张，翻皮子再消耗 1 张。
+	if g.RemainCount() != rule.WallSize-54 {
+		t.Fatalf("牌墙余量应为 %d，实际 %d", rule.WallSize-54, g.RemainCount())
+	}
+
+	if g.Round.PiZi == 0 || g.Round.LaiZi == 0 {
+		t.Fatalf("应翻出皮子与赖子，实际 %+v", g.Round)
 	}
 }
 

@@ -21,6 +21,26 @@ export const STAGE_HEIGHT = 750
 /** 中央方位盘圆心与半径 */
 const CENTER = { x: 667, y: 375, r: 84 }
 
+/**
+ * 面子占用的牌张数：吃与碰 3 张，杠 4 张，红中/皮子/赖子单张杠 1 张
+ * @param {Object} meld 服务端面子
+ * @returns {Number} 张数
+ */
+function meldTileCount(meld)
+{
+  if (meld.type === 1 || meld.type === 2)
+  {
+    return 3
+  }
+
+  if (meld.type === 6)
+  {
+    return 1
+  }
+
+  return 4
+}
+
 /** 我的手牌：单张宽高、间距、底边对齐位置、选中上移量 */
 const HAND = { w: 66, h: 92, gap: 3, bottom: 738, lift: 24, minW: 46 }
 
@@ -55,7 +75,7 @@ const MELD = [
 
 /** 四家信息面板：0 我左下、1 右中、2 对家左上、3 左中 */
 const PANEL = [
-  { x: 1146, y: 590, w: 176, h: 58 },
+  { x: 1146, y: 574, w: 176, h: 58 },
   { x: 1082, y: 300, w: 176, h: 58 },
   { x: 240, y: 60, w: 176, h: 58 },
   { x: 76, y: 300, w: 176, h: 58 }
@@ -644,15 +664,17 @@ export default class TableScene extends Phaser.Scene
 
     seats.forEach((seat, index) =>
     {
-      if (!seat || !seat.melds || !seat.melds.length)
+      const melds = (seat && seat.melds ? seat.melds : []).concat(seat && seat.extras ? seat.extras : [])
+
+      if (!melds.length)
       {
         return
       }
 
       const view = this.viewOf(index)
       const layout = MELD[view]
-      /* 服务端 type：1 碰、2 明杠、3 暗杠、4 补杠 */
-      const counts = seat.melds.map((meld) => (meld.type === 1 ? 3 : 4))
+      /* 服务端 type：1 吃、2 碰、3 明杠、4 暗杠、5 补杠、6 特殊杠 */
+      const counts = melds.map((meld) => meldTileCount(meld))
       const bw = layout.rot ? layout.h : layout.w
       const pitch = bw + 2
       let total = 0
@@ -678,13 +700,15 @@ export default class TableScene extends Phaser.Scene
         this.myMeldWidth = total
       }
 
-      seat.melds.forEach((meld, mi) =>
+      melds.forEach((meld, mi) =>
       {
         /* 暗杠对他人不可见，用牌背表示 */
-        const key = meld.type === 3 && index !== me ? 'tile_back_wall' : tileKey(meld.tile)
+        const hidden = meld.type === 4 && index !== me
 
         for (let i = 0; i < counts[mi]; i++)
         {
+          const tile = meld.type === 1 ? meld.start + i : meld.tile
+          const key = hidden ? 'tile_back_wall' : tileKey(tile)
           const x = cursor + i * sp + (bw * scale) / 2
           const y = layout.y + sh / 2
 
@@ -780,18 +804,18 @@ export default class TableScene extends Phaser.Scene
     }
 
     const startMin = Math.max(210, 14 + this.myMeldWidth + 20)
+    /* 右边界让出我的座位卡（1146 起），避免手牌被压住 */
+    const rightMax = 1136
     const gap = hand.length >= 14 ? HAND.gap : 6
-    const avail = 1322 - startMin
+    const avail = rightMax - startMin
     let tw = Math.min(HAND.w, Math.floor((avail - (hand.length - 1) * gap) / hand.length))
 
     tw = Math.max(HAND.minW, tw)
 
     const th = Math.round(tw * HAND.h / HAND.w)
     const total = hand.length * tw + (hand.length - 1) * gap
-    const startX = Math.max(startMin, Math.round((STAGE_WIDTH - total) / 2))
+    const startX = Math.max(startMin, Math.round((startMin + rightMax - total) / 2))
     const baseY = HAND.bottom - th / 2
-    const seat = (this.state.seats || [])[this.state.mySeat || 0]
-    const queSuit = seat && seat.que !== undefined ? seat.que : -1
     const mode = this.selectMode || 'none'
 
     hand.forEach((tile, i) =>
@@ -799,13 +823,6 @@ export default class TableScene extends Phaser.Scene
       const picked = mode === 'multi' ? this.picked.includes(i) : this.selected === i
       const x = startX + i * (tw + gap) + tw / 2
       const y = baseY - (picked ? HAND.lift : 0)
-
-      if (queSuit >= 0 && suitOf(tile) === queSuit)
-      {
-        const mask = this.add.rectangle(x, y, tw, th, 0x0a1a12, 0.34)
-
-        this.layers.hand.add(mask)
-      }
 
       const img = this.makeTile(tileKey(tile), x, y, tw, th)
 

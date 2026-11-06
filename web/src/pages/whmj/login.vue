@@ -42,7 +42,7 @@ $danger: #FF7A6B;
 
     <view class="brand">
       <image class="brand__art" :src="logoImage" mode="aspectFit" />
-      <text class="brand__sub">七皮四赖 · 红中杠</text>
+      <text class="brand__sub">红中赖子杠 · 二五八将</text>
     </view>
 
     <view class="form">

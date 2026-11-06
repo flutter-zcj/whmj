@@ -27,6 +27,7 @@ const (
 // 操作类型。
 const (
 	OpDiscard = "discard"
+	OpChi     = "chi"
 	OpPeng    = "peng"
 	OpGang    = "gang"
 	OpAnGang  = "angang"
@@ -86,6 +87,12 @@ type Player struct {
 	Score    int         `json:"score"`
 	GangGain int         `json:"gangGain"`
 	Hu       *HuInfo     `json:"hu"`
+	// Opened 开口次数：吃、碰、明杠各算一次，杠红中/皮子/赖子与暗杠不算。
+	Opened int `json:"opened"`
+	// Gangs 各类杠的次数，key 为番型名（红中杠、皮子杠、赖子杠、明杠、暗杠）。
+	Gangs map[string]int `json:"gangs"`
+	// Extras 红中杠、皮子杠、赖子杠这类单张杠，不占面子、不算开口。
+	Extras []rule.Meld `json:"extras"`
 }
 
 // Config 一局的可配置规则。
@@ -93,11 +100,17 @@ type Config struct {
 	Base       int `json:"base"`
 	Cap        int `json:"cap"`
 	RoundTotal int `json:"roundTotal"`
+	// MinFanSmall 小胡起胡番数，0 表示用默认 6 番。
+	MinFanSmall int `json:"minFanSmall"`
+	// MinFanBig 大胡起胡番数，0 表示用默认 3 番。
+	MinFanBig int `json:"minFanBig"`
 }
 
-// DefaultConfig 默认规则：底分 1、封顶 4 番、一局 8 盘。
+// DefaultConfig 默认规则：底分 1、封顶 6 番、一局 8 盘、3 番起胡。
+//
+// 起胡门槛按休闲局下调到 3 番，避免对局频繁荒庄；challenge 场可通过配置调回 6 番。
 func DefaultConfig() Config {
-	return Config{Base: 1, Cap: 4, RoundTotal: 8}
+	return Config{Base: 1, Cap: 6, RoundTotal: 8, MinFanSmall: 3, MinFanBig: 1}
 }
 
 // Game 一局牌。
@@ -111,6 +124,8 @@ type Game struct {
 	Phase   Phase
 	Turn    int
 	Dealer  int
+	// Round 本局的皮子与赖子，发牌后翻定。
+	Round rule.Round
 
 	drawn       int
 	gangFlag    bool
@@ -204,7 +219,7 @@ func (g *Game) emit(route string, seat int, data any) {
 	g.events = append(g.events, Event{Route: route, Seat: seat, Data: data})
 }
 
-// Start 发牌并进入定缺阶段。
+// Start 发牌、翻皮子并进入出牌阶段。
 func (g *Game) Start(round int) {
 	g.round = round
 	g.Wall = rule.NewWall(g.Rng)
@@ -221,10 +236,19 @@ func (g *Game) Start(round int) {
 	g.Players[g.Dealer].Hand.Add(g.Wall[g.Pos])
 	g.Pos++
 
+	// 翻皮子：从牌墙翻一张定本局的皮子与赖子，翻出的牌本身不再进入牌墙。
+	flip := g.Wall[g.Pos]
+	g.Pos++
+	g.Round = rule.NewRound(flip)
+
 	g.emit("onGameStart", -1, struct {
-		Dealer int `json:"dealer"`
-		Round  int `json:"round"`
-	}{Dealer: g.Dealer, Round: round})
+		Dealer int        `json:"dealer"`
+		Round  int        `json:"round"`
+		Flip   int        `json:"flip"`
+		PiZi   int        `json:"pizi"`
+		LaiZi  int        `json:"laizi"`
+		Round2 rule.Round `json:"roundInfo"`
+	}{Dealer: g.Dealer, Round: round, Flip: flip, PiZi: g.Round.PiZi, LaiZi: g.Round.LaiZi, Round2: g.Round})
 
 	for _, p := range g.Players {
 		g.emit("onDeal", p.Seat, struct {
@@ -251,21 +275,27 @@ func (g *Game) beginPlay() {
 	g.askDiscard(g.Dealer)
 }
 
-// askDiscard 通知某座位出牌，并给出自摸/暗杠/补杠选项。
+// askDiscard 通知某座位出牌，并给出自摸/暗杠/补杠/特殊杠选项。
 func (g *Game) askDiscard(seat int) {
 	p := g.Players[seat]
-	opts := make([]Option, 0, 4)
+	opts := make([]Option, 0, 8)
 
-	if g.drawn > 0 && rule.CanWin(p.Hand, len(p.Melds)) {
-		opts = append(opts, Option{Type: OpHu, Tile: g.drawn, Desc: "胡"})
+	if g.drawn > 0 {
+		if _, ok := g.canHu(p, p.Hand, rule.WinOptions{SelfDraw: true, GangShang: g.gangFlag}); ok {
+			opts = append(opts, Option{Type: OpHu, Tile: g.drawn, Desc: "自摸"})
+		}
 	}
 
-	for _, t := range rule.AnGangTiles(p.Hand) {
+	for _, t := range rule.AnGangTiles(p.Hand, g.Round) {
 		opts = append(opts, Option{Type: OpAnGang, Tile: t, Desc: "暗杠"})
 	}
 
 	for _, t := range rule.BuGangTiles(p.Hand, p.Melds) {
 		opts = append(opts, Option{Type: OpBuGang, Tile: t, Desc: "补杠"})
+	}
+
+	for _, t := range rule.SpecialGangTiles(p.Hand, g.Round) {
+		opts = append(opts, Option{Type: OpGang, Tile: t, Desc: g.gangLabel(t)})
 	}
 
 	g.needDiscard = true
@@ -280,6 +310,84 @@ func (g *Game) askDiscard(seat int) {
 		Options  []Option `json:"options"`
 		Remain   int      `json:"remain"`
 	}{Seat: seat, Deadline: g.deadline, Options: opts, Remain: g.remain()})
+}
+
+// gangLabel 返回特殊杠的按钮文案。
+func (g *Game) gangLabel(t int) string {
+	switch {
+	case t == rule.Zhong:
+		return "红中杠"
+	case g.Round.IsLaiZi(t):
+		return "赖子杠"
+	case g.Round.IsPiZi(t):
+		return "皮子杠"
+	}
+
+	return "杠"
+}
+
+// canHu 统一校验胡牌：结构、开口、留皮、赖子数与起胡番数。
+func (g *Game) canHu(p *Player, c rule.Counts, opt rule.WinOptions) (rule.FanResult, bool) {
+	var empty rule.FanResult
+
+	if p.Opened <= 0 {
+		return empty, false
+	}
+
+	if rule.HasPiZi(c, p.Melds, g.Round) {
+		return empty, false
+	}
+
+	shape, ok := rule.AnalyzeWin(c, p.Melds, g.Round)
+	if !ok {
+		return empty, false
+	}
+
+	big := shape.IsBigHu() || opt.GangShang || opt.HaiDi || opt.QiangGang
+
+	if !big {
+		if shape.LaiziUsed >= 2 {
+			return empty, false
+		}
+
+		if !shape.PairIs258 {
+			return empty, false
+		}
+	}
+
+	opt.Banker = p.IsBanker
+	opt.Opened = p.Opened
+	opt.Gangs = p.Gangs
+
+	fan := rule.CalcFan(c, p.Melds, g.Round, opt)
+
+	if big {
+		fan.MinFan = g.minFanBig()
+	} else {
+		fan.MinFan = g.minFanSmall()
+	}
+
+	if fan.Total < fan.MinFan {
+		return fan, false
+	}
+
+	return fan, true
+}
+
+func (g *Game) minFanSmall() int {
+	if g.Cfg.MinFanSmall <= 0 {
+		return rule.MinFanSmall
+	}
+
+	return g.Cfg.MinFanSmall
+}
+
+func (g *Game) minFanBig() int {
+	if g.Cfg.MinFanBig <= 0 {
+		return rule.MinFanBig
+	}
+
+	return g.Cfg.MinFanBig
 }
 
 // drawSeatTile 只对本人返回摸到的牌，其他人拿到 0。
@@ -329,7 +437,7 @@ func (g *Game) Discard(seat, tile int) {
 	g.askOthers(seat, tile)
 }
 
-// askOthers 计算其他座位对这张弃牌的响应选项。
+// askOthers 计算其他座位对这张弃牌的响应选项，吃只有下家可以。
 func (g *Game) askOthers(fromSeat, tile int) {
 	g.pending = make(map[int][]Option)
 	g.answered = make(map[int]bool)
@@ -341,20 +449,26 @@ func (g *Game) askOthers(fromSeat, tile int) {
 			continue
 		}
 
-		opts := make([]Option, 0, 3)
+		opts := make([]Option, 0, 4)
 		probe := p.Hand.Clone()
 		probe.Add(tile)
 
-		if rule.CanWin(probe, len(p.Melds)) {
+		if _, ok := g.canHu(p, probe, rule.WinOptions{}); ok {
 			opts = append(opts, Option{Type: OpHu, Tile: tile, Desc: "胡"})
 		}
 
-		if rule.CanMingGang(p.Hand, tile) && g.remain() > 0 {
+		if rule.CanMingGang(p.Hand, tile, g.Round) && g.remain() > 0 {
 			opts = append(opts, Option{Type: OpGang, Tile: tile, Desc: "杠"})
 		}
 
-		if rule.CanPeng(p.Hand, tile) {
+		if rule.CanPeng(p.Hand, tile, g.Round) {
 			opts = append(opts, Option{Type: OpPeng, Tile: tile, Desc: "碰"})
+		}
+
+		if p.Seat == (fromSeat+1)%len(g.Players) {
+			for _, start := range rule.CanChi(p.Hand, tile, g.Round) {
+				opts = append(opts, Option{Type: OpChi, Tile: start, Desc: "吃"})
+			}
 		}
 
 		if len(opts) > 0 {
@@ -507,6 +621,28 @@ func (g *Game) selfAction(seat int, opType string, tile int) {
 
 		g.settleGang(seat, tile, rule.MeldBuGang)
 		g.gangDraw(seat)
+	case OpGang:
+		if p.Hand[tile] <= 0 {
+			return
+		}
+
+		label := g.gangLabel(tile)
+		if label == "杠" {
+			return
+		}
+
+		p.Hand.Remove(tile)
+		p.Extras = append(p.Extras, rule.Meld{Type: rule.MeldSpecialGang, Tile: tile, From: seat})
+
+		g.emit("onActionDone", -1, struct {
+			Seat  int    `json:"seat"`
+			Type  string `json:"type"`
+			Tile  int    `json:"tile"`
+			Label string `json:"label"`
+		}{Seat: seat, Type: OpGang, Tile: tile, Label: label})
+
+		g.settleSpecialGang(seat, label)
+		g.gangDraw(seat)
 	}
 }
 
@@ -518,10 +654,11 @@ func (g *Game) tryResolve() {
 		}
 	}
 
-	// 优先级：胡 > 杠 > 碰
+	// 优先级：胡 > 杠 > 碰 > 吃
 	huSeats := make([]int, 0, 3)
 	gangSeat, gangTile := -1, 0
 	pengSeat := -1
+	chiSeat, chiStart := -1, 0
 
 	seats := make([]int, 0, len(g.pending))
 	for seat := range g.pending {
@@ -546,6 +683,10 @@ func (g *Game) tryResolve() {
 		case OpPeng:
 			if pengSeat < 0 {
 				pengSeat = seat
+			}
+		case OpChi:
+			if chiSeat < 0 {
+				chiSeat, chiStart = seat, act.Tile
 			}
 		}
 	}
@@ -576,7 +717,43 @@ func (g *Game) tryResolve() {
 		return
 	}
 
+	if chiSeat >= 0 {
+		g.doChi(chiSeat, chiStart)
+
+		return
+	}
+
 	g.nextTurn(g.lastSeat)
+}
+
+// doChi 执行吃：移除顺子中缺的两张牌，亮出一刻面子。
+func (g *Game) doChi(seat, start int) {
+	p := g.Players[seat]
+
+	for k := 0; k < 3; k++ {
+		if start+k == g.lastTile {
+			continue
+		}
+
+		if !p.Hand.Remove(start + k) {
+			return
+		}
+	}
+
+	p.Melds = append(p.Melds, rule.Meld{Type: rule.MeldChi, Tile: g.lastTile, Start: start, From: g.lastSeat})
+	p.Opened++
+
+	g.emit("onActionDone", -1, struct {
+		Seat  int    `json:"seat"`
+		Type  string `json:"type"`
+		Tile  int    `json:"tile"`
+		Start int    `json:"start"`
+		Label string `json:"label"`
+	}{Seat: seat, Type: OpChi, Tile: g.lastTile, Start: start, Label: "吃"})
+
+	g.Turn = seat
+	g.drawn = 0
+	g.askDiscard(seat)
 }
 
 func (g *Game) doPeng(seat int) {
@@ -584,6 +761,7 @@ func (g *Game) doPeng(seat int) {
 	p.Hand.Remove(g.lastTile)
 	p.Hand.Remove(g.lastTile)
 	p.Melds = append(p.Melds, rule.Meld{Type: rule.MeldPeng, Tile: g.lastTile, From: g.lastSeat})
+	p.Opened++
 
 	g.emit("onActionDone", -1, struct {
 		Seat  int    `json:"seat"`
@@ -605,6 +783,7 @@ func (g *Game) doMingGang(seat, tile int) {
 	}
 
 	p.Melds = append(p.Melds, rule.Meld{Type: rule.MeldMingGang, Tile: tile, From: g.lastSeat})
+	p.Opened++
 	g.emit("onActionDone", -1, struct {
 		Seat  int    `json:"seat"`
 		Type  string `json:"type"`
@@ -662,7 +841,7 @@ func (g *Game) askRobGang(seat, tile int) bool {
 		probe := p.Hand.Clone()
 		probe.Add(tile)
 
-		if rule.CanWin(probe, len(p.Melds)) {
+		if _, ok := g.canHu(p, probe, rule.WinOptions{QiangGang: true}); ok {
 			g.pending[p.Seat] = []Option{{Type: OpHu, Tile: tile, Desc: "抢杠胡"}}
 			g.answered[p.Seat] = false
 		}

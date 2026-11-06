@@ -155,6 +155,7 @@ export function sortTiles(tiles)
 
 /** 服务端返回的操作类型 */
 export const OP_DISCARD = 'discard'
+export const OP_CHI = 'chi'
 export const OP_PENG = 'peng'
 export const OP_GANG = 'gang'
 export const OP_AN_GANG = 'angang'
@@ -165,6 +166,7 @@ export const OP_PASS = 'pass'
 /** 操作类型对应的中文按钮文案 */
 export const OP_TEXT =
 {
+  [OP_CHI]: '吃',
   [OP_PENG]: '碰',
   [OP_GANG]: '杠',
   [OP_AN_GANG]: '暗杠',

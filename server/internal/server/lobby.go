@@ -16,9 +16,9 @@ import (
 
 // plays 支持的玩法列表，客户端大厅按此渲染。
 var plays = []PlayInfo{
-	{Key: "whmj", Name: "武汉麻将", Desc: "七皮四赖 · 红中杠 · 底分 1", Base: 1, Cap: 4},
-	{Key: "whmj_high", Name: "武汉麻将·高分", Desc: "七皮四赖 · 底分 2 封顶 5 番", Base: 2, Cap: 5},
-	{Key: "whmj_quick", Name: "快速场", Desc: "四局一结算，适合练手", Base: 1, Cap: 3},
+	{Key: "whmj", Name: "武汉麻将", Desc: "红中赖子杠 · 二五八将 · 开口才能胡", Base: 1, Cap: 6},
+	{Key: "whmj_high", Name: "武汉麻将·高分", Desc: "底分 2 · 封顶 7 番", Base: 2, Cap: 7},
+	{Key: "whmj_quick", Name: "快速场", Desc: "四局一结算，适合练手", Base: 1, Cap: 5},
 }
 
 // Lobby 大厅 actor：管理房间列表、创建与回收房间。

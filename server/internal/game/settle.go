@@ -37,7 +37,7 @@ type ServerPlayer struct {
 	Fans   []rule.FanItem `json:"fans"`
 }
 
-// winHu 处理一次胡牌并按血战规则即时结算。
+// winHu 处理一次胡牌并按武汉规则结算：一炮单响，三家都输点。
 func (g *Game) winHu(seat, loseSeat int, selfDraw bool, tile int, cont bool) {
 	if seat < 0 || seat >= len(g.Players) {
 		return
@@ -58,20 +58,18 @@ func (g *Game) winHu(seat, loseSeat int, selfDraw bool, tile int, cont bool) {
 		probe.Add(tile)
 	}
 
-	if !rule.CanWin(probe, len(p.Melds)) {
-		return
-	}
-
 	opt := rule.WinOptions{
 		SelfDraw:  selfDraw,
 		GangShang: g.gangFlag && g.afterGang == seat,
 		QiangGang: !selfDraw && g.lastSeat == loseSeat && g.gangFlag,
 		HaiDi:     g.remain() <= 0,
-		TianHu:    selfDraw && g.firstTurn && seat == g.Dealer,
-		DiHu:      selfDraw && g.firstTurn && !p.IsBanker,
 	}
 
-	fans := rule.CalcFan(probe, p.Melds, tile, opt)
+	fans, ok := g.canHu(p, probe, opt)
+	if !ok {
+		return
+	}
+
 	score := rule.Score(g.Cfg.Base, fans.Total, g.Cfg.Cap)
 
 	fullHand := probe.Tiles()
@@ -96,26 +94,33 @@ func (g *Game) winHu(seat, loseSeat int, selfDraw bool, tile int, cont bool) {
 	p.Hu = info
 
 	if selfDraw {
-		g.Players[seat].Hand.Remove(tile)
-
-		for _, other := range g.Players {
-			if other.Seat == seat || other.Finished {
-				continue
-			}
-
-			other.Score -= score
-			p.Score += score
-		}
-
-		g.emitDetail(seat, SettleHu, score*len(g.othersActive(seat)), "自摸", seat)
-	} else {
-		if loseSeat >= 0 && loseSeat < len(g.Players) {
-			g.Players[loseSeat].Score -= score
-			p.Score += score
-			g.emitDetail(seat, SettleHu, score, "胡牌", loseSeat)
-			g.emitDetail(loseSeat, SettlePaid, -score, "点炮", seat)
-		}
+		p.Hand.Remove(tile)
 	}
+
+	// 一炮单响：自摸三家各付；点炮放冲者付双份，其余两家各付一份，
+	// 体现武汉麻将「没放冲的玩家也要输点」。
+	for _, other := range g.Players {
+		if other.Seat == seat || other.Finished {
+			continue
+		}
+
+		pay := score
+		if !selfDraw && other.Seat == loseSeat {
+			pay = score * 2
+		}
+
+		other.Score -= pay
+		p.Score += pay
+
+		g.emitDetail(other.Seat, SettlePaid, -pay, "输分", seat)
+	}
+
+	desc := "自摸"
+	if !selfDraw {
+		desc = "胡牌"
+	}
+
+	g.emitDetail(seat, SettleHu, p.Hu.Score, desc, loseSeat)
 
 	g.emit("onHu", -1, info)
 	g.pending = make(map[int][]Option)
@@ -174,56 +179,42 @@ func (g *Game) continueAfterHu(from int) {
 	g.nextTurn(from)
 }
 
-// settleGang 结算杠分：明杠由放杠者付，暗杠与补杠由其余未胡玩家各付。
+// settleGang 记录杠牌次数。武汉麻将的杠不算即时输赢，只在胡牌番数里体现。
 func (g *Game) settleGang(seat, tile int, kind rule.MeldType) {
-	amount := 0
-	kindCode := SettleMingGang
-	desc := "明杠"
+	p := g.Players[seat]
+	if p.Gangs == nil {
+		p.Gangs = make(map[string]int)
+	}
 
 	switch kind {
 	case rule.MeldMingGang:
-		amount = 2 * g.Cfg.Base
-		kindCode = SettleMingGang
-		desc = "刮风"
+		p.Gangs[rule.FanMingGang]++
 	case rule.MeldAnGang:
-		amount = 2 * g.Cfg.Base
-		kindCode = SettleAnGang
-		desc = "下雨"
+		p.Gangs[rule.FanAnGang]++
 	case rule.MeldBuGang:
-		amount = 1 * g.Cfg.Base
-		kindCode = SettleBuGang
-		desc = "补杠"
+		p.Gangs[rule.FanMingGang]++
 	}
 
+	g.emitDetail(seat, SettleMingGang, 0, "杠", seat)
+}
+
+// settleSpecialGang 记录红中杠、皮子杠、赖子杠，同样只计番。
+func (g *Game) settleSpecialGang(seat int, label string) {
 	p := g.Players[seat]
-
-	if kind == rule.MeldMingGang {
-		from := g.lastSeat
-		if from < 0 || from >= len(g.Players) || from == seat {
-			return
-		}
-
-		g.Players[from].Score -= amount
-		p.Score += amount
-		p.GangGain += amount
-
-		g.gangs = append(g.gangs, GangRecord{From: from, To: seat, Amount: amount, Kind: kindCode})
-		g.emitDetail(seat, kindCode, amount, desc, from)
-		g.emitDetail(from, kindCode, -amount, desc, seat)
-
-		return
+	if p.Gangs == nil {
+		p.Gangs = make(map[string]int)
 	}
 
-	for _, other := range g.othersActive(seat) {
-		other.Score -= amount
-		p.Score += amount
-		p.GangGain += amount
-
-		g.gangs = append(g.gangs, GangRecord{From: other.Seat, To: seat, Amount: amount, Kind: kindCode})
-		g.emitDetail(other.Seat, kindCode, -amount, desc, seat)
+	switch label {
+	case "红中杠":
+		p.Gangs[rule.FanZhongGang]++
+	case "皮子杠":
+		p.Gangs[rule.FanPiZiGang]++
+	case "赖子杠":
+		p.Gangs[rule.FanLaiZiGang]++
 	}
 
-	g.emitDetail(seat, kindCode, amount*len(g.othersActive(seat)), desc, seat)
+	g.emitDetail(seat, SettleMingGang, 0, label, seat)
 }
 
 func (g *Game) emitDetail(seat, kind, amount int, desc string, peer int) {
@@ -276,53 +267,14 @@ func (g *Game) endGame(lastSeat int) {
 	}{Players: snap, Last: lastSeat})
 }
 
-// finalSettle 流局与终局共用的查叫、查花猪、退税。
+// finalSettle 终局时刷新听牌状态。武汉麻将流局不赔付，只记录听牌供面板展示。
 func (g *Game) finalSettle() {
-	// 先在结束瞬间刷新听牌状态
 	for _, p := range g.Players {
 		if p.Finished {
 			continue
 		}
 
-		p.Ting = rule.IsTing(p.Hand, len(p.Melds))
-	}
-
-	// 查大叫：未听牌者向每个听牌者赔付对方的最大番
-	for _, p := range g.Players {
-		if p.Finished || p.Ting {
-			continue
-		}
-
-		for _, tp := range g.Players {
-			if tp.Seat == p.Seat || !tp.Ting || tp.Finished {
-				continue
-			}
-
-			fan := rule.MaxTingFan(tp.Hand, tp.Melds)
-			pay := rule.Score(g.Cfg.Base, fan, g.Cfg.Cap)
-			if pay <= 0 {
-				continue
-			}
-
-			p.Score -= pay
-			tp.Score += pay
-			g.emitDetail(p.Seat, SettleDaJiao, -pay, "查大叫", tp.Seat)
-			g.emitDetail(tp.Seat, SettleDaJiao, pay, "查大叫", p.Seat)
-		}
-	}
-
-	// 退税：未胡且未听牌者退还此前收到的杠分
-	for _, rec := range g.gangs {
-		to := g.Players[rec.To]
-		if to.Finished || to.Ting {
-			continue
-		}
-
-		to.Score -= rec.Amount
-		to.GangGain -= rec.Amount
-		g.Players[rec.From].Score += rec.Amount
-		g.emitDetail(to.Seat, SettleTuiShui, -rec.Amount, "退税", rec.From)
-		g.emitDetail(rec.From, SettleTuiShui, rec.Amount, "退税", to.Seat)
+		p.Ting = rule.IsTing(p.Hand, len(p.Melds), g.Round)
 	}
 }
 
@@ -334,7 +286,7 @@ func (g *Game) maxFanAmongActive() int {
 			continue
 		}
 
-		if fan := rule.MaxTingFan(p.Hand, p.Melds); fan > best {
+		if fan := rule.MaxTingFan(p.Hand, p.Melds, g.Round); fan > best {
 			best = fan
 		}
 	}

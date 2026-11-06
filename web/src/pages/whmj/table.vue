@@ -7,7 +7,7 @@ $glass: rgba(6, 26, 18, 0.92);
 .page { position: relative; width: 100%; height: 100%; overflow: hidden; background: #03060e; }
 .layer { position: absolute; left: 0; top: 0; width: 1334px; height: 750px; transform-origin: 0 0; }
 .layer--hud { position: relative; pointer-events: none; }
-.layer--hud .topbar, .layer--hud .bar, .layer--hud .mj-mask { position: relative; pointer-events: auto; }
+.layer--hud .topbar, .layer--hud .mj-mask { position: relative; pointer-events: auto; }
 .stage { position: absolute; left: 0; top: 0; width: 1334px; height: 750px; overflow: hidden; }
 .topbar { position: absolute; left: 0; top: 0; display: flex; flex-direction: row; align-items: center; width: 1334px; height: 54px; padding: 0 14px; box-sizing: border-box; background: linear-gradient(180deg, rgba(2, 8, 6, 0.86) 0%, rgba(2, 8, 6, 0) 100%); }
 .tb-btn { position: relative; display: flex; align-items: center; justify-content: center; width: 38px; height: 38px; margin-left: 10px; background: rgba(8, 30, 20, 0.6); border: 1px solid $line; border-radius: 19px; }
@@ -18,7 +18,7 @@ $glass: rgba(6, 26, 18, 0.92);
 .tb-center { position: absolute; left: 50%; top: 6px; display: flex; flex-direction: row; align-items: center; margin-left: -150px; width: 300px; height: 30px; justify-content: center; }
 .tb-center__text { position: relative; font-size: 18px; color: rgba(246, 233, 206, 0.82); letter-spacing: 1px; }
 .tb-right { position: absolute; right: 14px; top: 8px; display: flex; flex-direction: row; }
-.bar { position: absolute; left: 344px; top: 552px; display: flex; flex-direction: row; align-items: center; width: 794px; height: 52px; }
+.bar { pointer-events: auto; position: absolute; left: 344px; top: 566px; display: flex; flex-direction: row; align-items: center; width: 794px; height: 52px; }
 .bar__tip { position: relative; display: flex; flex-direction: row; align-items: center; flex: 1; height: 44px; padding: 0 16px; box-sizing: border-box; background: rgba(4, 20, 14, 0.72); border: 1px solid $line; border-radius: 22px; overflow: hidden; }
 .bar__tipText { position: relative; font-size: 18px; line-height: 22px; color: $cream; }
 .bar__tipText--warn { position: relative; color: #FFC46B; }
@@ -64,11 +64,13 @@ $glass: rgba(6, 26, 18, 0.92);
 .guide__body { position: relative; display: flex; flex-direction: column; flex: 1; margin-left: 12px; }
 .guide__head { position: relative; font-size: 20px; font-weight: 700; color: $cream; }
 .guide__desc { position: relative; margin-top: 2px; font-size: 16px; line-height: 24px; color: rgba(246, 233, 206, 0.66); }
+.roundinfo { position: absolute; left: 16px; top: 62px; display: flex; flex-direction: row; }
+.roundinfo__item { position: relative; display: flex; align-items: center; height: 30px; margin-right: 8px; padding: 0 12px; font-size: 15px; color: $gold; background: rgba(4, 20, 14, 0.62); border: 1px solid $line; border-radius: 15px; }
 .toast { pointer-events: none; position: absolute; left: 50%; top: 546px; display: flex; align-items: center; justify-content: center; margin-left: -320px; width: 640px; height: 46px; background: rgba(4, 20, 14, 0.94); border: 1px solid rgba(255, 217, 138, 0.5); border-radius: 14px; }
 .toast__text { position: relative; font-size: 18px; color: $gold; }
 .fx { position: absolute; left: 0; top: 250px; display: flex; align-items: center; justify-content: center; width: 1334px; }
 .fx__text { position: relative; font-size: 150px; font-weight: 700; color: #FFE9B4; letter-spacing: 12px; text-shadow: 0 0 30px rgba(255, 196, 84, 0.9), 0 8px 0 rgba(140, 82, 12, 0.9), 0 18px 40px rgba(0, 0, 0, 0.6); animation: fxPop 0.9s ease-out both; }
-@keyframes fxPop { position: relative; 0% { transform: scale(0.4) rotate(-8deg); opacity: 0; } 35% { transform: scale(1.16) rotate(0deg); opacity: 1; } 70% { transform: scale(1) rotate(0deg); opacity: 1; } 100% { transform: scale(1.05); opacity: 0; } }
+@keyframes fxPop { 0% { transform: scale(0.4) rotate(-8deg); opacity: 0; } 35% { transform: scale(1.16) rotate(0deg); opacity: 1; } 70% { transform: scale(1) rotate(0deg); opacity: 1; } 100% { transform: scale(1.05); opacity: 0; } }
 </style>
 <template>
   <view class="page">
@@ -77,6 +79,13 @@ $glass: rgba(6, 26, 18, 0.92);
     </view>
 
     <view class="layer layer--hud" :style="rootStyle">
+
+      <view class="roundinfo">
+        <text class="roundinfo__item">皮子 {{ piziText }}</text>
+        <text class="roundinfo__item">赖子 {{ laiziText }}</text>
+        <text class="roundinfo__item" v-if="myOpened === 0">未开口 · 不能胡</text>
+        <text class="roundinfo__item" v-else>已开 {{ myOpened }} 口</text>
+      </view>
 
       <view class="topbar">
         <view class="tb-btn" @click="handleLeave">
@@ -167,22 +176,22 @@ $glass: rgba(6, 26, 18, 0.92);
           <view class="guide__step">
             <view class="guide__dot"><text class="guide__num">2</text></view>
             <view class="guide__body">
-              <text class="guide__head">碰与杠</text>
-              <text class="guide__desc">本玩法不吃牌，只能碰、明杠、暗杠、补杠；四张红中可开「红中杠」。</text>
+              <text class="guide__head">开口才能胡</text>
+              <text class="guide__desc">吃、碰、明杠都算开口，一次都没开口不能胡牌；红中、皮子、赖子单张杠出去不算开口。</text>
             </view>
           </view>
           <view class="guide__step">
             <view class="guide__dot"><text class="guide__num">3</text></view>
             <view class="guide__body">
-              <text class="guide__head">红中是赖子</text>
-              <text class="guide__desc">整副牌 112 张，红中可当任意一张序数牌使用，带赖子胡牌额外计番。</text>
+              <text class="guide__head">翻皮子定赖子</text>
+              <text class="guide__desc">整副牌 112 张。开局翻一张皮子，它的下一张就是赖子，可当任意牌用；红中固定是皮子，只能杠。</text>
             </view>
           </view>
           <view class="guide__step">
             <view class="guide__dot"><text class="guide__num">4</text></view>
             <view class="guide__body">
-              <text class="guide__head">胡牌与结算</text>
-              <text class="guide__desc">四组面子加一对将，或七个对子即可胡；别人出牌可胡时右下角会弹按钮，点「过」放弃。</text>
+              <text class="guide__head">二五八将与结算</text>
+              <text class="guide__desc">四组面子加一对将，将牌必须是二、五、八；手上留皮子或红中不能胡，小胡最多一张赖子。</text>
             </view>
           </view>
           <view class="rule__ok" @click="closeGuide">
@@ -194,7 +203,7 @@ $glass: rgba(6, 26, 18, 0.92);
       <view class="mj-mask" v-if="ruleVisible" @click="ruleVisible = false">
         <view class="card rule" @click.stop>
           <text class="rule__title">武汉赖子麻将</text>
-          <text class="rule__text">112 张牌（万筒条各 36 张 + 红中 4 张），4 人各 13 张、庄家 14 张。红中为赖子，可代任意序数牌；不吃牌，只碰、杠（明杠、暗杠、补杠、红中杠），杠分即时结算。胡牌为四组面子加一对将或七对，番型含平胡、碰碰胡、清一色、七对、杠上花、海底捞月、赖子与红中杠，封顶 4 番；自摸三家付，点炮一家付。</text>
+          <text class="rule__text">112 张牌（万筒条各 36 张 + 红中 4 张），4 人各 13 张、庄家 14 张。开局翻一张皮子，皮子的下一张为赖子，可代任意牌；红中固定是皮子，只能单张杠。吃、碰、明杠算开口，未开口不能胡，手上留皮子或红中也不能胡。小胡必须二五八做将、最多一张赖子；大胡为碰碰胡、清一色、将一色、全求人、杠上花、海底捞、抢杠。3 番起胡，封顶 6 番；一炮单响，点炮者付双份、其余两家各付一份。</text>
           <view class="rule__ok" @click="ruleVisible = false">
             <text class="rule__okText">知道了</text>
           </view>
@@ -239,7 +248,7 @@ $glass: rgba(6, 26, 18, 0.92);
  *                            手牌点击改为随时可选中并给出原因提示；出牌按钮我的回合常驻；
  *                            新增新手引导与阶段状态条，解决「点不动、看不懂」问题
  */
-import { ASSET_BASE, OP_TEXT, OP_PASS, OP_HU, OP_PENG, OP_GANG, OP_AN_GANG, OP_BU_GANG, tileName } from '@/utils/whmj/const.js'
+import { ASSET_BASE, OP_TEXT, OP_PASS, OP_HU, OP_CHI, OP_PENG, OP_GANG, OP_AN_GANG, OP_BU_GANG, tileName } from '@/utils/whmj/const.js'
 import { getToken } from '@/utils/whmj/http.js'
 import socket from '@/utils/whmj/socket.js'
 import audio from '@/utils/whmj/audio.js'
@@ -258,6 +267,8 @@ export default
       base: 1,
       round: 0,
       maxRound: 4,
+      piZi: 0,
+      laiZi: 0,
       phase: '',
       turn: -1,
       remain: 0,
@@ -290,6 +301,26 @@ export default
       return `transform:scale(${this.uiScale});left:${this.uiLeft}px;top:${this.uiTop}px`
     },
 
+    /** 皮子文案 */
+    piziText()
+    {
+      return this.piZi ? tileName(this.piZi) : '—'
+    },
+
+    /** 赖子文案 */
+    laiziText()
+    {
+      return this.laiZi ? tileName(this.laiZi) : '—'
+    },
+
+    /** 我的开口次数 */
+    myOpened()
+    {
+      const me = this.seats[this.mySeat]
+
+      return me && me.opened ? me.opened : 0
+    },
+
     /** 顶部中央状态 */
     centerText()
     {
@@ -308,7 +339,7 @@ export default
       {
         if (this.options.length && this.turn !== this.mySeat)
         {
-          const names = this.displayOptions.filter((op) => op.type !== OP_PASS).map((op) => OP_TEXT[op.type]).join(' / ')
+          const names = this.displayOptions.filter((op) => op.type !== OP_PASS).map((op) => this.opLabel(op)).join(' / ')
 
           return names ? `可以「${names}」，不要就点「过」` : '请选择操作'
         }
@@ -317,7 +348,7 @@ export default
         {
           if (this.options.length)
           {
-            const names = this.displayOptions.filter((op) => op.type !== OP_PASS).map((op) => OP_TEXT[op.type]).join(' / ')
+            const names = this.displayOptions.filter((op) => op.type !== OP_PASS).map((op) => this.opLabel(op)).join(' / ')
 
             return `自摸/杠：可点「${names}」，或选一张牌打出`
           }
@@ -344,7 +375,7 @@ export default
     /** 按钮展示顺序：胡 > 杠 > 暗杠 > 补杠 > 碰 > 过；别人出牌时要补一个「过」用于放弃 */
     displayOptions()
     {
-      const weight = { [OP_HU]: 0, [OP_GANG]: 1, [OP_AN_GANG]: 2, [OP_BU_GANG]: 3, [OP_PENG]: 4, [OP_PASS]: 9 }
+      const weight = { [OP_HU]: 0, [OP_GANG]: 1, [OP_AN_GANG]: 2, [OP_BU_GANG]: 3, [OP_PENG]: 4, [OP_CHI]: 5, [OP_PASS]: 9 }
       const list = this.options.slice().sort((a, b) => (weight[a.type] || 5) - (weight[b.type] || 5))
 
       if (this.options.length && this.turn !== this.mySeat)
@@ -654,7 +685,9 @@ export default
         this.options = []
         this.selectedIndex = -1
         this.tipText = ''
-        this.showTip(`第 ${d.round} 局开始，红中作赖子`)
+        this.piZi = d.pizi || 0
+        this.laiZi = d.laizi || 0
+        this.showTip(`第 ${d.round} 局开始：皮子 ${tileName(this.piZi)}，赖子 ${tileName(this.laiZi)}`)
       })
 
       on('onDeal', (d) =>
@@ -799,6 +832,12 @@ export default
       {
         this.seats = d.seats
         this.mySeat = this.resolveMySeat(d.seats)
+      }
+
+      if (d.roundSet)
+      {
+        this.piZi = d.roundSet.pizi || this.piZi
+        this.laiZi = d.roundSet.laizi || this.laiZi
       }
 
       this.phase = d.phase || this.phase
@@ -1164,6 +1203,11 @@ export default
      */
     opLabel(op)
     {
+      if (op.type === OP_GANG && op.desc && op.desc.indexOf('杠') >= 0 && op.desc !== '杠')
+      {
+        return op.desc
+      }
+
       return OP_TEXT[op.type] || op.type
     },
 

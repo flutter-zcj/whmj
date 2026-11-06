@@ -9,7 +9,9 @@ $teal: #2BAFB3;
 $teal-deep: #187A80;
 $red: #C8342A;
 $line: rgba(255, 224, 160, 0.42);
-.page { position: relative; width: 100vw; height: 100vh; overflow: hidden; background: #2c6ea8; }
+.page { position: relative; width: 100%; height: 100%; overflow: hidden; background: #2c6ea8; }
+.bg-fill { position: absolute; left: 0; top: 0; width: 100%; height: 100%; filter: blur(14px) saturate(1.05); transform: scale(1.06); }
+.bg-fill__veil { position: absolute; left: 0; top: 0; width: 100%; height: 100%; background: rgba(6, 26, 40, 0.28); }
 .layer { position: absolute; left: 0; top: 0; width: 1334px; height: 750px; transform-origin: 0 0; }
 .bg { position: absolute; left: 0; top: 0; width: 1334px; height: 750px; }
 .bg__veil { position: absolute; left: 0; top: 0; width: 1334px; height: 750px; background: linear-gradient(180deg, rgba(10, 44, 70, 0.34) 0%, rgba(10, 44, 70, 0) 26%, rgba(8, 32, 24, 0.18) 76%, rgba(6, 26, 20, 0.42) 100%); }
@@ -97,6 +99,8 @@ $line: rgba(255, 224, 160, 0.42);
 
 <template>
   <view class="page">
+    <image class="bg-fill" :src="bgImage" mode="aspectFill" />
+    <view class="bg-fill__veil"></view>
     <view class="layer" :style="rootStyle">
       <image class="bg" :src="bgImage" mode="aspectFill" />
       <view class="bg__veil"></view>
@@ -139,7 +143,7 @@ $line: rgba(255, 224, 160, 0.42);
       </view>
 
       <image class="logo" :src="logoImage" mode="aspectFit" />
-      <text class="logo__slogan">七皮四赖 · 红中杠 · 地道武汉规则</text>
+      <text class="logo__slogan">红中赖子杠 · 二五八将 · 开口才能胡</text>
 
       <view class="hero__shadow"></view>
       <image class="hero" :src="heroImage" mode="aspectFit" />
@@ -493,11 +497,14 @@ export default
       return `${ASSET_BASE}/icon/${name}.svg`
     },
 
-    /** 按窗口尺寸缩放设计网格 */
+    /** 按窗口尺寸缩放设计网格，竖屏时与根元素旋转后的容器宽高保持一致 */
     computeScale()
     {
-      const cw = window.innerWidth
-      const ch = window.innerHeight
+      const vw = window.innerWidth
+      const vh = window.innerHeight
+      const rotated = vh > vw
+      const cw = rotated ? vh : vw
+      const ch = rotated ? vw : vh
       const scale = Math.min(cw / 1334, ch / 750)
 
       this.uiScale = Math.round(scale * 10000) / 10000

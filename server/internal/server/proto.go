@@ -95,7 +95,9 @@ type SeatView struct {
 	IsBanker  bool        `json:"isBanker"`
 	TileCount int         `json:"tileCount"`
 	Melds     []rule.Meld `json:"melds"`
+	Extras    []rule.Meld `json:"extras"`
 	Discards  []int       `json:"discards"`
+	Opened    int         `json:"opened"`
 }
 
 // RoomSnapshot 房间完整快照，断线重连时下发。
@@ -110,6 +112,7 @@ type RoomSnapshot struct {
 	Seats    []SeatView    `json:"seats"`
 	Hand     []int         `json:"hand"`
 	Options  []game.Option `json:"options"`
+	RoundSet rule.Round    `json:"roundSet"`
 }
 
 // ActionReq 房间内操作。

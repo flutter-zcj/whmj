@@ -1,13 +1,14 @@
-// Package rule 实现武汉赖子麻将（七皮四赖红中杠）的牌面模型、胡牌判定与番型计算。
+// Package rule 实现武汉赖子麻将（红中赖子杠）的牌面模型、胡牌判定与番型计算。
 //
 // 牌编码与客户端共享同一套整数约定，避免两侧各自维护映射表：
 //
 //	1..9    一万..九万
 //	10..18  一筒..九筒
 //	19..27  一条..九条
-//	28      红中（赖子，可代任意序数牌）
+//	28      红中（只能单张杠，留在手上不能胡）
 //
 // 整副牌为 108 张序数牌 + 4 张红中 = 112 张，不含东南西北与发白。
+// 每局翻一张牌定皮子，皮子的下一张为赖子（万能牌），见 Round。
 package rule
 
 import (
@@ -60,11 +61,6 @@ func Rank(t int) int {
 
 // IsZhong 判断是否为红中。
 func IsZhong(t int) bool {
-	return t == Zhong
-}
-
-// IsLaizi 判断是否为赖子（武汉麻将中红中即赖子）。
-func IsLaizi(t int) bool {
 	return t == Zhong
 }
 
@@ -175,31 +171,58 @@ func (p *Counts) Tiles() []int {
 type MeldType int
 
 const (
+	// MeldChi 吃。
+	MeldChi MeldType = 1
 	// MeldPeng 碰。
-	MeldPeng MeldType = 1
+	MeldPeng MeldType = 2
 	// MeldMingGang 明杠（直杠，来自他家弃牌）。
-	MeldMingGang MeldType = 2
+	MeldMingGang MeldType = 3
 	// MeldAnGang 暗杠。
-	MeldAnGang MeldType = 3
+	MeldAnGang MeldType = 4
 	// MeldBuGang 补杠（巴杠，碰后补第四张）。
-	MeldBuGang MeldType = 4
+	MeldBuGang MeldType = 5
+	// MeldSpecialGang 单张特殊杠：红中杠、皮子杠、赖子杠，不占面子。
+	MeldSpecialGang MeldType = 6
 )
 
 // Meld 已亮出的面子。
 type Meld struct {
 	Type MeldType `json:"type"`
 	Tile int      `json:"tile"`
-	From int      `json:"from"`
+	// Start 吃牌时顺子的首张，其余类型为 0。
+	Start int `json:"start"`
+	From  int `json:"from"`
 }
 
-// IsGang 判断是否为杠。
+// Tiles 返回面子包含的牌，吃为三张顺子，碰为三张同牌，杠为四张同牌。
+func (m Meld) Tiles() []int {
+	if m.Type == MeldChi {
+		return []int{m.Start, m.Start + 1, m.Start + 2}
+	}
+
+	n := 3
+	if m.IsGang() {
+		n = 4
+	}
+
+	out := make([]int, 0, n)
+	for i := 0; i < n; i++ {
+		out = append(out, m.Tile)
+	}
+
+	return out
+}
+
+// IsGang 判断是否为杠（含单张特殊杠）。
 func (m Meld) IsGang() bool {
-	return m.Type == MeldMingGang || m.Type == MeldAnGang || m.Type == MeldBuGang
+	return m.Type == MeldMingGang || m.Type == MeldAnGang || m.Type == MeldBuGang || m.Type == MeldSpecialGang
 }
 
 // MeldName 返回面子中文名。
 func (m Meld) MeldName() string {
 	switch m.Type {
+	case MeldChi:
+		return "吃"
 	case MeldPeng:
 		return "碰"
 	case MeldMingGang:
@@ -208,6 +231,8 @@ func (m Meld) MeldName() string {
 		return "暗杠"
 	case MeldBuGang:
 		return "补杠"
+	case MeldSpecialGang:
+		return "杠"
 	}
 
 	return "未知"

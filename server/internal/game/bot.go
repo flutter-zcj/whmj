@@ -14,6 +14,13 @@ func (g *Game) BotChoose(seat int) (string, int) {
 	}
 
 	if seat == g.Turn && g.needDiscard {
+		// 红中、皮子留在手上不能胡，机器人优先把它们杠出去。
+		for _, o := range opts {
+			if o.Type == OpGang {
+				return OpGang, o.Tile
+			}
+		}
+
 		for _, o := range opts {
 			if o.Type == OpAnGang && g.Rng.Float64() < 0.5 {
 				return OpAnGang, o.Tile
@@ -41,6 +48,13 @@ func (g *Game) BotChoose(seat int) (string, int) {
 		}
 	}
 
+	// 吃是开口的唯一不吃亏的方式，机器人遇到就吃，保证有资格胡牌。
+	for _, o := range opts {
+		if o.Type == OpChi {
+			return OpChi, o.Tile
+		}
+	}
+
 	return OpPass, 0
 }
 
@@ -57,7 +71,7 @@ func (g *Game) BotStep(seat int) bool {
 		g.Discard(seat, tile)
 
 		return true
-	case OpPass, OpHu, OpPeng, OpGang, OpAnGang, OpBuGang:
+	case OpPass, OpHu, OpPeng, OpChi, OpGang, OpAnGang, OpBuGang:
 		g.Action(seat, op, tile)
 
 		return true
