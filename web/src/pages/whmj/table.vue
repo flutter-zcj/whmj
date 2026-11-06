@@ -18,7 +18,7 @@ $glass: rgba(6, 26, 18, 0.92);
 .tb-center { position: absolute; left: 50%; top: 6px; display: flex; flex-direction: row; align-items: center; margin-left: -150px; width: 300px; height: 30px; justify-content: center; }
 .tb-center__text { position: relative; font-size: 18px; color: rgba(246, 233, 206, 0.82); letter-spacing: 1px; }
 .tb-right { position: absolute; right: 14px; top: 8px; display: flex; flex-direction: row; }
-.bar { position: absolute; left: 344px; top: 596px; display: flex; flex-direction: row; align-items: center; width: 794px; height: 52px; }
+.bar { position: absolute; left: 344px; top: 552px; display: flex; flex-direction: row; align-items: center; width: 794px; height: 52px; }
 .bar__tip { position: relative; display: flex; flex-direction: row; align-items: center; flex: 1; height: 44px; padding: 0 16px; box-sizing: border-box; background: rgba(4, 20, 14, 0.72); border: 1px solid $line; border-radius: 22px; overflow: hidden; }
 .bar__tipText { position: relative; font-size: 18px; line-height: 22px; color: $cream; }
 .bar__tipText--warn { position: relative; color: #FFC46B; }
@@ -72,15 +72,12 @@ $glass: rgba(6, 26, 18, 0.92);
 </style>
 <template>
   <view class="page">
-    <!-- 画布层：1334×750 设计网格 -->
     <view class="layer" :style="rootStyle">
       <view class="stage" id="mj-stage" />
     </view>
 
-    <!-- HUD 层：同尺寸同缩放，作为画布层的后继兄弟节点，保证始终压在上方 -->
     <view class="layer layer--hud" :style="rootStyle">
 
-      <!-- 顶栏 -->
       <view class="topbar">
         <view class="tb-btn" @click="handleLeave">
           <image class="tb-btn__ico" :src="ico('arrow_left')" mode="aspectFit" />
@@ -105,27 +102,22 @@ $glass: rgba(6, 26, 18, 0.92);
         </view>
       </view>
 
-      <!-- 碰杠胡大字 -->
       <view class="fx" v-if="fxText" :key="fxKey">
         <text class="fx__text">{{ fxText }}</text>
       </view>
 
-      <!-- 提示气泡 -->
       <view class="toast" v-if="tipText">
         <text class="toast__text">{{ tipText }}</text>
       </view>
 
-      <!-- 底部状态 + 操作 -->
       <view class="bar" v-if="!resultVisible && !guideVisible">
         <view class="bar__tip">
           <text :class="tipWarn ? 'bar__tipText bar__tipText--warn' : 'bar__tipText'">{{ statusText }}</text>
         </view>
         <view class="bar__ops">
-          <!-- 碰 / 杠 / 胡 / 过 -->
           <view v-for="op in displayOptions" :key="op.type + '_' + op.tile" :class="opClass(op.type)" @click="doAction(op)">
             <text class="op__label">{{ opLabel(op) }}</text>
           </view>
-          <!-- 出牌：我的回合常驻，未选牌时点了给出提示 -->
           <view
             v-if="phase === 'play' && discardVisible"
             :class="discardClass"
@@ -135,7 +127,6 @@ $glass: rgba(6, 26, 18, 0.92);
         </view>
       </view>
 
-      <!-- 结算 -->
       <view class="mj-mask" v-if="resultVisible">
         <view class="card result">
           <text class="result__badge">{{ resultTitle }}</text>
@@ -163,7 +154,6 @@ $glass: rgba(6, 26, 18, 0.92);
         </view>
       </view>
 
-      <!-- 新手引导 -->
       <view class="mj-mask" v-if="guideVisible">
         <view class="card rule">
           <text class="rule__title">武汉赖子麻将 · 怎么玩</text>
@@ -201,7 +191,6 @@ $glass: rgba(6, 26, 18, 0.92);
         </view>
       </view>
 
-      <!-- 玩法说明 -->
       <view class="mj-mask" v-if="ruleVisible" @click="ruleVisible = false">
         <view class="card rule" @click.stop>
           <text class="rule__title">武汉赖子麻将</text>
@@ -287,7 +276,6 @@ export default
       tipText: '',
       tipWarn: false,
       soundOn: true,
-      /* 设计网格缩放：k 与偏移由 fitStage 计算 */
       uiScale: 1,
       uiLeft: 0,
       uiTop: 0
@@ -359,7 +347,6 @@ export default
       const weight = { [OP_HU]: 0, [OP_GANG]: 1, [OP_AN_GANG]: 2, [OP_BU_GANG]: 3, [OP_PENG]: 4, [OP_PASS]: 9 }
       const list = this.options.slice().sort((a, b) => (weight[a.type] || 5) - (weight[b.type] || 5))
 
-      /* 服务端的可选项不含「过」，由前端补一个，否则玩家只能干等超时自动放弃 */
       if (this.options.length && this.turn !== this.mySeat)
       {
         list.push({ type: OP_PASS, tile: 0 })
@@ -502,7 +489,6 @@ export default
       }
       catch (e)
       {
-        /* 存储不可用时仅本次有效 */
       }
     },
 

@@ -3,3 +3,6 @@ dist/
 unpackage/
 .DS_Store
 *.log
+
+# 生成器中转目录（生效目录为 web/src/static/whmj/gen）
+web/static/

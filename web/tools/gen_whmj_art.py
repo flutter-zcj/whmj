@@ -15,7 +15,7 @@
     gem.png        钻石
 
 用法：
-    python3 tools/gen_whmj_art.py [--out static/whmj/gen]
+    python3 tools/gen_whmj_art.py [--out src/static/whmj/gen]
 """
 
 from __future__ import annotations
@@ -71,10 +71,10 @@ DEVICES = [
     # key, 主色, 暗色, 大字, 副标题
     ("game_whmj", (228, 118, 117), (150, 52, 58), "麻", "武汉麻将"),
     ("game_scmj", (233, 176, 74), (156, 104, 30), "川", "四川麻将"),
-    ("game_tlj", (86, 150, 205), (36, 86, 136), "拖", "拖垃圾"),
+    ("game_tlj", (86, 150, 205), (36, 86, 136), "拖", "拖拉机"),
     ("game_ddz1", (94, 196, 200), (32, 122, 132), "斗", "斗地主"),
     ("game_kwx", (231, 150, 70), (150, 84, 26), "星", "卡五星"),
-    ("game_ddz2", (216, 96, 88), (140, 40, 42), "地", "斗地主"),
+    ("game_hh", (152, 122, 206), (86, 58, 142), "晃", "晃晃"),
     ("game_pdk", (110, 176, 92), (52, 108, 44), "跑", "跑得快"),
 ]
 
@@ -594,7 +594,7 @@ def draw_gem(path: str, size: int = 64) -> None:
 def main() -> None:
     """按清单生成全部资源。"""
     parser = argparse.ArgumentParser(description="生成武汉赖子麻将美术资源")
-    parser.add_argument("--out", default="static/whmj/gen", help="输出目录")
+    parser.add_argument("--out", default="src/static/whmj/gen", help="输出目录")
     args = parser.parse_args()
 
     out = args.out

@@ -40,13 +40,11 @@ $danger: #FF7A6B;
     <image class="page__bg" :src="bgImage" mode="aspectFill" />
     <view class="page__veil"></view>
 
-    <!-- 品牌标识 -->
     <view class="brand">
       <image class="brand__art" :src="logoImage" mode="aspectFit" />
       <text class="brand__sub">七皮四赖 · 红中杠</text>
     </view>
 
-    <!-- 登录 / 注册表单 -->
     <view class="form">
       <view :class="focusKey === 'userName' ? 'field--focus' : 'field'">
         <text class="field__label">账号</text>
@@ -90,7 +88,6 @@ $danger: #FF7A6B;
         <text class="switch__link" @click="toggleMode">{{ mode === 'login' ? '立即注册' : '返回登录' }}</text>
       </view>
 
-      <!-- 游客试玩：随机账号快速体验 -->
       <view class="guest" @click="guestPlay">
         <text class="guest__text">游客试玩 · 一键开局</text>
       </view>
@@ -184,7 +181,6 @@ export default
 
   onLoad()
   {
-    /* 已登录直接进大厅，避免重复输入 */
     if (getToken())
     {
       uni.reLaunch({ url: '/pages/whmj/index' })

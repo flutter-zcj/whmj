@@ -4,6 +4,7 @@
 > 技术栈：**uni-app(Vue3) + Phaser 3** 前端，**Go + cherry** 服务端，H5 横屏 1334×750
 
 在线地址：<https://60.204.248.157:8081/whmj/>（自签证书，浏览器需忽略告警）
+代码仓库：<https://github.com/flutter-zcj/whmj>
 
 ## 1. 项目结构
 
@@ -96,11 +97,13 @@ cd server && CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o whmj .
 | 红中牌面渲染（`tile_z1`） | 通过 |
 | 商城 6 档礼包 + 三页签 | 通过 |
 | 隐私指引 / 防沉迷 / 防作弊 三个弹窗 | 通过 |
-| Vue 编码规范（`check_std.py`） | index/table/login 三个页面 0 不合规 |
+| 大厅 7 个玩法卡（武汉/四川/拖拉机/斗地主/卡五星/晃晃/跑得快） | 通过，无重名 |
+| 牌桌 HUD 不遮挡手牌（提示条 `top:552`，手牌顶 `646`） | 通过 |
+| Vue 编码规范（`tools/check_std.py`） | index/table/login 三个页面 0 不合规 |
 | Go 规范（`gofmt -l` 无输出、`go vet`、`go test`） | 通过 |
 
 ## 7. 已知边界
 
 - 支付为模拟，未接入任何支付 SDK；登录为账号体系，不含微信/QQ 登录。
-- 四川麻将、拖垃圾、斗地主、卡五星、跑得快五个入口为占位（点击提示「即将上线」）。
+- 四川麻将、拖拉机、斗地主、卡五星、晃晃、跑得快六个入口为占位（点击提示「即将上线」）。
 - 美术为按 Style Guide 重绘，非原包素材；原包 `res.dat` 加密，无法也无意提取其像素与音频。

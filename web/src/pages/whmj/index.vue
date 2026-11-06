@@ -309,10 +309,10 @@ export default
       games: [
         { key: 'whmj', name: '武汉麻将', img: `${GEN}/ui/game_whmj.png`, badge: '热门', open: true },
         { key: 'scmj', name: '四川麻将', img: `${GEN}/ui/game_scmj.png`, badge: '新', open: false },
-        { key: 'tlj', name: '拖垃圾', img: `${GEN}/ui/game_tlj.png`, badge: '', open: false },
+        { key: 'tlj', name: '拖拉机', img: `${GEN}/ui/game_tlj.png`, badge: '', open: false },
         { key: 'ddz1', name: '斗地主', img: `${GEN}/ui/game_ddz1.png`, badge: '', open: false },
         { key: 'kwx', name: '卡五星', img: `${GEN}/ui/game_kwx.png`, badge: '热门', open: false },
-        { key: 'ddz2', name: '斗地主', img: `${GEN}/ui/game_ddz2.png`, badge: '', open: false },
+        { key: 'hh', name: '晃晃', img: `${GEN}/ui/game_hh.png`, badge: '', open: false },
         { key: 'pdk', name: '跑得快', img: `${GEN}/ui/game_pdk.png`, badge: '', open: false }
       ],
       shopTabs: [
@@ -321,12 +321,12 @@ export default
         { key: 'item', name: '道具', icon: 'gift' }
       ],
       goldPacks: [
-        { name: '8万金币', tag: '送6万金币', price: 8 },
-        { name: '36万金币', tag: '送20万金币', price: 30 },
-        { name: '108万金币', tag: '送40万金币', price: 88 },
-        { name: '208万金币', tag: '送40万金币', price: 168 },
-        { name: '338万金币', tag: '送70万金币', price: 268 },
-        { name: '500万金币', tag: '送112万金币', price: 388 }
+        { name: '8万金币', tag: '送2万金币', price: 8 },
+        { name: '36万金币', tag: '送10万金币', price: 30 },
+        { name: '108万金币', tag: '送30万金币', price: 88 },
+        { name: '208万金币', tag: '送60万金币', price: 168 },
+        { name: '338万金币', tag: '送100万金币', price: 268 },
+        { name: '500万金币', tag: '送150万金币', price: 388 }
       ],
       gemPacks: [
         { name: '60钻石', tag: '首充双倍', price: 6 },
