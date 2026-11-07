@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"math/rand"
+	"sort"
 	"time"
 
 	cfacade "github.com/cherry-game/cherry/facade"
@@ -475,8 +476,27 @@ func (r *Room) flush() {
 		}
 	}
 
+	r.pushTing()
+
 	if r.game.Over() {
 		r.finishRound()
+	}
+}
+
+// pushTing 手牌每次变化后把听牌提示单独推给每个在座玩家，避免提示过期。
+func (r *Room) pushTing() {
+	if r.game == nil {
+		return
+	}
+
+	for _, p := range r.game.Players {
+		if p.Finished {
+			continue
+		}
+
+		r.pushSeat(p.Seat, "onTing", struct {
+			Tips []TingTip `json:"tips"`
+		}{Tips: tingTips(p, r.game.Round)})
 	}
 }
 
@@ -611,6 +631,7 @@ type Snapshot struct {
 	LastSeat int           `json:"lastSeat"`
 	Remain   int           `json:"remain"`
 	RoundSet rule.Round    `json:"roundSet"`
+	TingTips []TingTip     `json:"tingTips"`
 }
 
 // buildSnapshot 组装某个座位的完整视图，未开局时只带座位信息。
@@ -631,11 +652,44 @@ func (r *Room) buildSnapshot(seat int) *Snapshot {
 	snap.Last, snap.LastSeat = r.game.LastDiscard()
 
 	if seat >= 0 && seat < len(r.game.Players) {
-		snap.Hand = r.game.Players[seat].Hand.Tiles()
+		p := r.game.Players[seat]
+		snap.Hand = p.Hand.Tiles()
 		snap.Options = r.game.Pending(seat)
+		snap.TingTips = tingTips(p, r.game.Round)
 	}
 
 	return snap
+}
+
+// tingTips 计算该玩家的听牌提示：手上多一张时给「打哪张听什么」，已在听牌线时给「听什么」。
+func tingTips(p *game.Player, round rule.Round) []TingTip {
+	hand := p.Hand
+
+	switch len(hand.Tiles()) % 3 {
+	case 2:
+		tips := rule.TingMap(hand, len(p.Melds), round)
+		keys := make([]int, 0, len(tips))
+
+		for k := range tips {
+			keys = append(keys, k)
+		}
+
+		sort.Ints(keys)
+
+		out := make([]TingTip, 0, len(keys))
+
+		for _, k := range keys {
+			out = append(out, TingTip{Discard: k, Tiles: tips[k]})
+		}
+
+		return out
+	case 1:
+		if list := rule.TingList(hand, len(p.Melds), round); len(list) > 0 {
+			return []TingTip{{Discard: 0, Tiles: list}}
+		}
+	}
+
+	return nil
 }
 
 // seatViews 生成四家座位视图，牌局字段在未开局时保持零值。

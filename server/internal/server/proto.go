@@ -113,6 +113,13 @@ type RoomSnapshot struct {
 	Hand     []int         `json:"hand"`
 	Options  []game.Option `json:"options"`
 	RoundSet rule.Round    `json:"roundSet"`
+	TingTips []TingTip     `json:"tingTips"`
+}
+
+// TingTip 一条听牌提示：打出 Discard 后能听 Tiles 里的牌。
+type TingTip struct {
+	Discard int   `json:"discard"`
+	Tiles   []int `json:"tiles"`
 }
 
 // ActionReq 房间内操作。

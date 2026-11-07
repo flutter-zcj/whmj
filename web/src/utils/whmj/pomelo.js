@@ -543,7 +543,8 @@
 
   var handshakeInit = function(data) {
     if(data.sys && data.sys.heartbeat) {
-      heartbeatInterval = data.sys.heartbeat * 1000;   // heartbeat interval
+      // 服务端按 heartbeat 秒数判超时，客户端必须提前发，否则会在同一时刻被先踢下线
+      heartbeatInterval = data.sys.heartbeat * 500;   // heartbeat interval
       heartbeatTimeout = heartbeatInterval * 2;        // max heartbeat timeout
     } else {
       heartbeatInterval = 0;

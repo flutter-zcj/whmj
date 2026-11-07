@@ -2,6 +2,13 @@
 
 > 参考对象：应用宝《武汉赖子麻将》`com.wuhanlaizi.yyb` v6.3.4
 > 技术栈：**uni-app(Vue3) + Phaser 3** 前端，**Go + cherry** 服务端，H5 横屏 1334×750
+>
+> 开源参考（**思路参考 + 素材复用，非代码移植**）：
+> - [xiyoufang/mahjong](https://github.com/xiyoufang/mahjong)：C++ `GameLogic/GameCmd/AIEngine`，参考其牌局状态机、操作优先级与 AI 决策骨架；
+> - [fwhappy/mahjong](https://github.com/fwhappy/mahjong)：Go `win/ting/suggest/weight/wall`，参考其胡牌拆解、听牌枚举与出牌建议思路，落地为 `internal/rule/win.go` 的 `TingList/TingMap`；
+> - [xYajun/XianLaiGame](https://github.com/xYajun/XianLaiGame)：提供大厅、牌面、牌桌、结算、操作按钮 PNG 素材（183 个，见 `web/src/static/whmj/xl/`）。
+>
+> 三个项目均非「武汉红中赖子杠」规则，故规则层仍以本项目 `internal/rule` + `internal/game` 为准，差异与取舍见第 7 节。
 
 在线地址：<https://60.204.248.157:8081/whmj/>（自签证书，浏览器需忽略告警）
 代码仓库：<https://github.com/flutter-zcj/whmj>
@@ -14,6 +21,7 @@ whmj/
 │   ├── src/pages/whmj/         login.vue 登录 · index.vue 大厅 · table.vue 牌桌
 │   ├── src/utils/whmj/         api/http/socket/pomelo/protocol/audio/const/table(scene.js)
 │   ├── src/static/whmj/        牌面、图标、音效、生成资源（gen/）
+│   │   └── xl/                  XianLaiGame 素材：hall/tile/table/result/action
 │   └── tools/gen_whmj_art.py   美术资源生成器（PIL，无外部素材）
 ├── server/                     服务端（Go 1.24 + cherry v1.6.9）
 │   ├── main.go                 cherry Application：pomelo 解析器 + WS 连接器 + HTTP
@@ -44,6 +52,8 @@ whmj/
 | 小胡 | 必须二、五、八做将，最多 1 张赖子，1 番底 + 庄/自摸或放冲/硬胡/开口/各类杠 |
 | 大胡 | 碰碰胡、清一色、将一色、全求人、杠上花、海底捞、抢杠，可叠加，3 番起 |
 | 结算 | 底分 × 2^番，封顶 6 番；一炮单响，点炮者付双份、其余两家各付一份；杠只计番不即时结算 |
+| 一炮单响 | `game/settle.go` 按出牌方向只取最近一家胡牌，一局最多一个赢家（`TestSingleHuPerRound` 120 局校验） |
+| 听牌提示 | `rule.TingList/TingMap` 枚举听口，服务端 `onTing` 每次手牌变化后按座位推送；前端状态栏显示「N 张可打进听 / 打这张听：X / 已听：X」 |
 
 起胡门槛默认小胡 3 番、大胡 1 番（`game.Config.MinFanSmall/MinFanBig`），休闲局避免频繁荒庄。
 
@@ -58,7 +68,7 @@ WebSocket（cherry pomelo，JSON 序列化），路由前缀即节点类型 `whm
 | C→S | `whmj.gate.auth` | 握手后绑定 token |
 | C→S | `whmj.lobby.enter` / `list` / `quickStart` / `createRoom` / `joinRoom` | 大厅 |
 | C→S | `whmj.room.sync` / `ready` / `discard` / `action` / `leave` | 牌桌 |
-| S→C | `onDeal` `onDraw` `onDiscard` `onTurn` `onAsk` `onActionDone` `onSync` `onGameOver` `onRoomState` | 下行事件 |
+| S→C | `onDeal` `onDraw` `onDiscard` `onTurn` `onAsk` `onActionDone` `onTing` `onSync` `onGameOver` `onRoomState` | 下行事件；`onTing` 带 `tips`，快照带 `tingTips`（`{discard, tiles}`） |
 
 HTTP（前缀 `/whmj-api/`）：`POST /login`、`POST /register`、`GET|POST /profile`、`POST /records`、`GET /plays`。
 
@@ -118,10 +128,19 @@ cd server && CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o whmj .
 | 断线自动恢复：拔掉网关后 0.7s 整页重开、自动回房并同步牌局 | 通过（本地断代理复现） |
 | 吃牌后能正常出牌（服务端整组校验 + 快照回推） | 通过（`TestChiThenDiscard` / `TestChiWithoutTiles`） |
 | 旧连接关闭不误踢重连后的玩家 | 通过（`main.go` 按 sid 比对） |
+| XianLaiGame 素材入库（183 PNG）并重绘牌面、大厅、结算 | 通过 |
+| 大厅木质金框 + 水墨背景 + 人物立绘；隐私/防沉迷弹窗只提示一次 | 通过（浏览器截图） |
+| 胜负结算面板：旗标/头像/番型/本局分/累计分守恒、金棕按钮 | 通过（浏览器截图） |
+| 一炮单响：120 局模拟无多家同胡、赢家得分恒为正 | 通过（`TestSingleHuPerRound`） |
+| 听牌提示：轮到自己推「打哪张听什么」，等牌时推「已听」 | 通过（浏览器实测 `onTing` 3 条 / 1 条，文案计算正确） |
+| 心跳间隔改为服务端超时的一半，避免 60s 掉线 | 通过（`pomelo.js`） |
+| 刷新页面自动回房并恢复牌局进度 | 通过（房号 140884，第 3/59 手恢复） |
+| 全量回归：`go build/vet/test`、`npm run build:h5` | 通过 |
 
 ## 7. 已知边界
 
 - 支付为模拟，未接入任何支付 SDK；登录为账号体系，不含微信/QQ 登录。
 - 四川麻将、拖拉机、斗地主、卡五星、晃晃、跑得快六个入口为占位（点击提示「即将上线」）。
-- 美术为按 Style Guide 重绘，非原包素材。原包 `res.dat` 的加密方式已还原（XXTEA，密钥 `bzxgmj`，见 `docs/原版APK逆向分析.md`），但本项目仍使用自绘资源，不复制原包像素与音频。
+- 牌面、大厅、牌桌、结算 PNG 取自 `xYajun/XianLaiGame`（牌面放大 2 倍），图标与音效自绘；**不复制原版 APK 的像素与音频**。原包 `res.dat` 的加密方式已还原（XXTEA，密钥 `bzxgmj`，见 `docs/原版APK逆向分析.md`），仅用于规则比对。
+- 三个开源项目为**思路参考 + 素材复用，非代码移植**：`xiyoufang/mahjong`、`fwhappy/mahjong` 都不是武汉红中赖子杠规则，整体替换会让皮子/赖子、二五八将、开口、番型与一炮单响失效。目前吸收的是状态机与操作优先级骨架、胡牌拆解/听牌枚举/出牌建议思路（`TingList`、`TingMap`、单响结算），规则主干仍由 `internal/rule` + `internal/game` 自研维护。
 - 牌张为 112 张（万筒条 + 红中）；原版含风牌与发/白（136 张）并支持 4 种房型与「开口番/口口番」，差异清单见逆向分析文档第 3 节。

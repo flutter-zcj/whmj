@@ -572,7 +572,7 @@ func (g *Game) selfAction(seat int, opType string, tile int) bool {
 
 	switch opType {
 	case OpHu:
-		g.winHu(seat, seat, true, g.drawn, true)
+		g.winHu(seat, seat, true, g.drawn, false)
 	case OpAnGang:
 		if p.Hand[tile] < rule.CopiesPerTile {
 			return false
@@ -699,12 +699,31 @@ func (g *Game) tryResolve() {
 	g.answered = make(map[int]bool)
 	g.deadline = 0
 
+	// 一炮单响：多家同时报胡时，从点炮者下家起按座次取第一家（武汉麻将不打血战）。
 	if len(huSeats) > 0 {
-		for _, seat := range huSeats {
-			g.winHu(seat, g.lastSeat, false, g.lastTile, false)
+		winner := huSeats[0]
+
+		for i := 1; i <= len(g.Players); i++ {
+			probe := (g.lastSeat + i) % len(g.Players)
+
+			hit := false
+
+			for _, seat := range huSeats {
+				if seat == probe {
+					hit = true
+
+					break
+				}
+			}
+
+			if hit {
+				winner = probe
+
+				break
+			}
 		}
 
-		g.continueAfterHu(g.lastSeat)
+		g.winHu(winner, g.lastSeat, false, g.lastTile, false)
 
 		return
 	}

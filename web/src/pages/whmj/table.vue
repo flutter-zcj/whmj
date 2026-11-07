@@ -37,30 +37,48 @@ $glass: rgba(6, 26, 18, 0.92);
 .mj-mask { position: absolute; left: 0; top: 0; display: flex; align-items: center; justify-content: center; width: 1334px; height: 750px; background: rgba(2, 8, 6, 0.74); }
 .mj-mask--clear { position: absolute; left: 0; top: 0; display: flex; align-items: center; justify-content: center; width: 1334px; height: 750px; background: rgba(2, 8, 6, 0.3); pointer-events: none; }
 .mj-mask--top { position: relative; align-items: flex-start; padding-top: 96px; box-sizing: border-box; }
-.card { position: relative; display: flex; flex-direction: column; box-sizing: border-box; padding: 26px 30px; background: linear-gradient(170deg, rgba(22, 62, 44, 0.98) 0%, rgba(6, 24, 17, 0.98) 100%); border: 1px solid rgba(255, 217, 138, 0.5); border-radius: 22px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6); }
+.card { position: relative; display: flex; flex-direction: column; box-sizing: border-box; padding: 26px 32px; background: linear-gradient(180deg, rgba(60, 36, 18, 0.99) 0%, rgba(30, 17, 8, 0.99) 100%); border: 3px solid #F3C76A; border-radius: 22px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.64), inset 0 0 0 2px rgba(120, 74, 30, 0.7); }
 .mj-mask--clear .card { position: relative; pointer-events: auto; }
-.result { position: relative; display: flex; flex-direction: column; width: 800px; }
-.result__badge { position: relative; font-size: 40px; font-weight: 700; color: $gold; text-align: center; letter-spacing: 6px; }
-.result__sub { position: relative; margin-top: 8px; font-size: 18px; color: rgba(246, 233, 206, 0.6); text-align: center; }
-.result__row { position: relative; display: flex; flex-direction: row; align-items: center; height: 58px; margin-top: 8px; padding: 0 16px; border-radius: 12px; background: rgba(255, 255, 255, 0.05); }
-.result__row--me { position: relative; background: rgba(255, 217, 138, 0.14); border: 1px solid rgba(255, 217, 138, 0.34); }
-.result__name { position: relative; flex: 1; font-size: 20px; color: $cream; }
-.result__tag { position: relative; margin-left: 8px; padding: 2px 10px; font-size: 15px; color: #FFFFFF; background: rgba(228, 87, 46, 0.85); border-radius: 6px; }
-.result__score { position: relative; width: 110px; font-size: 24px; font-weight: 700; text-align: right; }
-.result__total { position: relative; width: 110px; font-size: 17px; text-align: right; color: rgba(246, 233, 206, 0.6); }
-.result__btns { position: relative; display: flex; flex-direction: row; margin-top: 22px; }
-.result__btn { position: relative; display: flex; align-items: center; justify-content: center; flex: 1; height: 62px; border-radius: 31px; background: linear-gradient(160deg, #FFE39A 0%, #D9A44C 100%); }
-.result__btnText { position: relative; font-size: 22px; font-weight: 700; color: #2A1C05; }
-.result__ghost { position: relative; display: flex; align-items: center; justify-content: center; flex: 1; height: 62px; margin-left: 16px; border-radius: 31px; background: rgba(255, 255, 255, 0.08); border: 1px solid $line; }
-.result__ghostText { position: relative; font-size: 22px; color: $cream; }
+.result { position: relative; display: flex; flex-direction: column; width: 1020px; padding-bottom: 26px; box-sizing: border-box; background: linear-gradient(180deg, rgba(60, 36, 18, 0.99) 0%, rgba(30, 17, 8, 0.99) 100%); border: 3px solid #F3C76A; border-radius: 22px; box-shadow: 0 20px 56px rgba(0, 0, 0, 0.64), inset 0 0 0 2px rgba(120, 74, 30, 0.7); }
+.result__head { position: relative; display: flex; flex-direction: row; align-items: center; height: 138px; padding: 0 34px; box-sizing: border-box; border-bottom: 1px solid rgba(243, 199, 106, 0.26); }
+.result__flag { position: relative; width: 100px; height: 90px; }
+.result__titles { position: relative; display: flex; flex-direction: column; margin-left: 16px; }
+.result__title { position: relative; font-size: 40px; font-weight: 700; letter-spacing: 6px; color: #FFE9B4; text-shadow: 0 3px 0 #7A4A16, 0 6px 14px rgba(0, 0, 0, 0.5); }
+.result__sub { position: relative; margin-top: 8px; font-size: 16px; color: rgba(255, 233, 180, 0.9); }
+.result__round { position: relative; margin-left: auto; padding: 6px 18px; background: rgba(180, 52, 42, 0.92); border: 1px solid rgba(255, 226, 168, 0.72); border-radius: 13px; font-size: 16px; color: #FFF6E2; }
+.result__thead { position: relative; display: flex; flex-direction: row; align-items: center; height: 44px; padding: 0 32px; box-sizing: border-box; background: rgba(0, 0, 0, 0.26); }
+.result__th { position: relative; font-size: 15px; color: rgba(255, 232, 188, 0.56); }
+.result__th--rank { position: relative; width: 56px; flex: none; text-align: center; }
+.result__th--player { position: relative; width: 268px; flex: none; }
+.result__th--fans { position: relative; flex: 1; }
+.result__th--score { position: relative; width: 112px; flex: none; text-align: right; }
+.result__th--total { position: relative; width: 112px; flex: none; text-align: right; }
+.result__row { position: relative; display: flex; flex-direction: row; align-items: center; height: 82px; margin: 9px 22px 0; padding: 0 10px; box-sizing: border-box; background: rgba(255, 255, 255, 0.045); border: 1px solid rgba(255, 214, 140, 0.14); border-radius: 12px; }
+.result__row--me { position: relative; background: linear-gradient(90deg, rgba(243, 199, 106, 0.2) 0%, rgba(243, 199, 106, 0.06) 100%); border-color: rgba(243, 199, 106, 0.68); }
+.result__rank { position: relative; display: flex; align-items: center; justify-content: center; width: 56px; flex: none; height: 40px; font-size: 21px; font-weight: 700; color: #F3C76A; }
+.result__medal { position: absolute; left: 0; top: 0; width: 56px; height: 40px; }
+.result__player { position: relative; display: flex; flex-direction: row; align-items: center; width: 268px; flex: none; }
+.result__face { position: relative; width: 54px; height: 54px; border: 2px solid rgba(243, 199, 106, 0.66); border-radius: 27px; }
+.result__meta { position: relative; display: flex; flex-direction: column; margin-left: 10px; }
+.result__name { position: relative; font-size: 19px; color: #FFF6E2; }
+.result__hu { position: relative; margin-top: 3px; font-size: 13px; color: #7BE3A5; }
+.result__fans { position: relative; display: flex; flex-direction: row; flex-wrap: wrap; align-content: center; flex: 1; }
+.result__fan { position: relative; margin: 2px 6px 2px 0; padding: 2px 9px; background: rgba(180, 52, 42, 0.82); border: 1px solid rgba(255, 214, 140, 0.46); border-radius: 8px; font-size: 13px; color: #FFF0D4; }
+.result__none { position: relative; font-size: 14px; color: rgba(255, 232, 188, 0.34); }
+.result__score { position: relative; width: 112px; flex: none; font-size: 26px; font-weight: 700; text-align: right; }
+.result__total { position: relative; width: 112px; flex: none; font-size: 16px; text-align: right; color: rgba(255, 240, 210, 0.58); }
+.result__ops { position: relative; display: flex; flex-direction: row; justify-content: center; margin-top: 26px; }
+.result__btn { position: relative; display: flex; align-items: center; justify-content: center; width: 264px; height: 78px; margin: 0 16px; background: linear-gradient(180deg, #B77C32 0%, #6B421A 100%); border: 3px solid #F3C76A; border-radius: 37px; box-shadow: 0 6px 0 rgba(72, 46, 14, 0.7), inset 0 2px 6px rgba(255, 255, 255, 0.26); }
+.result__btn--off { position: relative; background: linear-gradient(180deg, #6B6259 0%, #3A352F 100%); border-color: rgba(243, 199, 106, 0.5); }
+.result__btnText { position: relative; font-size: 23px; font-weight: 700; letter-spacing: 2px; color: #FFE9B4; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.62); }
 .rule { position: relative; display: flex; flex-direction: column; width: 820px; }
-.rule__title { position: relative; font-size: 30px; font-weight: 700; color: $gold; text-align: center; }
-.rule__text { position: relative; margin-top: 16px; font-size: 18px; line-height: 30px; color: rgba(246, 233, 206, 0.8); }
-.rule__ok { position: relative; display: flex; align-items: center; justify-content: center; height: 58px; margin-top: 20px; border-radius: 29px; background: linear-gradient(160deg, #FFE39A 0%, #D9A44C 100%); }
-.rule__okText { position: relative; font-size: 22px; font-weight: 700; color: #2A1C05; }
+.rule__title { position: relative; font-size: 31px; font-weight: 700; letter-spacing: 4px; color: #FFE9B4; text-align: center; text-shadow: 0 2px 0 #7A4A16; }
+.rule__text { position: relative; margin-top: 18px; font-size: 18px; line-height: 31px; color: rgba(255, 238, 206, 0.84); }
+.rule__ok { position: relative; display: flex; align-items: center; justify-content: center; height: 72px; margin-top: 22px; background: linear-gradient(180deg, #3E74BC 0%, #123A6E 100%); border: 3px solid #F3C76A; border-radius: 36px; box-shadow: 0 6px 0 rgba(72, 46, 14, 0.7), inset 0 2px 6px rgba(255, 255, 255, 0.26); }
+.rule__okText { position: relative; font-size: 23px; font-weight: 700; letter-spacing: 2px; color: #FFE9B4; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); }
 .guide__step { position: relative; display: flex; flex-direction: row; margin-top: 14px; }
-.guide__dot { position: relative; display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 15px; background: rgba(255, 217, 138, 0.2); border: 1px solid $line; }
-.guide__num { position: relative; font-size: 16px; font-weight: 700; color: $gold; }
+.guide__dot { position: relative; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 16px; background: linear-gradient(180deg, #FFE29A 0%, #C48A2E 100%); border: 1px solid #FFF3D2; }
+.guide__num { position: relative; font-size: 17px; font-weight: 700; color: #4A2C08; }
 .guide__body { position: relative; display: flex; flex-direction: column; flex: 1; margin-left: 12px; }
 .guide__head { position: relative; font-size: 20px; font-weight: 700; color: $cream; }
 .guide__desc { position: relative; margin-top: 2px; font-size: 16px; line-height: 24px; color: rgba(246, 233, 206, 0.66); }
@@ -137,27 +155,48 @@ $glass: rgba(6, 26, 18, 0.92);
       </view>
 
       <view class="mj-mask" v-if="resultVisible">
-        <view class="card result">
-          <text class="result__badge">{{ resultTitle }}</text>
-          <text class="result__sub">{{ resultSub }}</text>
+        <view class="result">
+          <view class="result__head">
+            <image class="result__flag" :src="resultFlag" mode="aspectFit" />
+            <view class="result__titles">
+              <text class="result__title">{{ resultTitle }}</text>
+              <text class="result__sub">{{ resultSub }}</text>
+            </view>
+            <text class="result__round">第 {{ round }} / {{ maxRound }} 局</text>
+          </view>
+          <view class="result__thead">
+            <text class="result__th result__th--rank">名次</text>
+            <text class="result__th result__th--player">玩家</text>
+            <text class="result__th result__th--fans">番型</text>
+            <text class="result__th result__th--score">本局</text>
+            <text class="result__th result__th--total">累计</text>
+          </view>
           <view
             class="result__row"
             :class="item.seat === mySeat ? 'result__row result__row--me' : 'result__row'"
-            v-for="item in resultRows"
+            v-for="(item, index) in resultRows"
             :key="item.seat">
-            <text class="result__name">{{ item.seat === mySeat ? '我 · ' : '' }}{{ item.nick }}</text>
-            <text class="result__tag" v-if="item.hu">胡</text>
-            <text class="result__total">累计 {{ item.total >= 0 ? '+' : '' }}{{ item.total }}</text>
-            <text class="result__score" :style="item.score >= 0 ? 'color:#FF8A7A' : 'color:#7BE3A5'">
-              {{ item.score >= 0 ? '+' : '' }}{{ item.score }}
-            </text>
-          </view>
-          <view class="result__btns">
-            <view class="result__btn" @click="resultVisible = false">
-              <text class="result__btnText">继续下一局</text>
+            <text class="result__rank">{{ index + 1 }}</text>
+            <view class="result__player">
+              <image class="result__face" :src="item.avatar || defaultFace" mode="aspectFill" />
+              <view class="result__meta">
+                <text class="result__name">{{ item.seat === mySeat ? '我 · ' : '' }}{{ item.nick }}</text>
+                <text class="result__hu" v-if="item.hu">胡牌</text>
+              </view>
             </view>
-            <view class="result__ghost" @click="handleLeave">
-              <text class="result__ghostText">返回大厅</text>
+            <view class="result__fans">
+              <text class="result__fan" v-for="fan in item.fans" :key="fan.name">{{ fan.name }} {{ fan.fan }}番</text>
+              <text class="result__none" v-if="!item.fans || !item.fans.length">{{ item.hu ? '屁胡' : '未胡' }}</text>
+            </view>
+            <text class="result__score" :style="item.score >= 0 ? 'color:#FF8A7A' : 'color:#7BE3A5'">{{ item.score >= 0 ? '+' : '' }}{{ item.score }}</text>
+            <text class="result__total">{{ item.total >= 0 ? '+' : '' }}{{ item.total }}</text>
+          </view>
+          <view class="result__ops">
+            <view class="result__btn" :class="round >= maxRound ? 'result__btn result__btn--off' : 'result__btn'" @click="resultVisible = false">
+              <text class="result__btnText">{{ round >= maxRound ? '整场已结束' : '继续下一局' }}</text>
+            </view>
+            <view class="result__btn" @click="handleLeave">
+              <text class="result__btnText">返回大厅</text>
             </view>
           </view>
         </view>
@@ -255,6 +294,9 @@ import audio from '@/utils/whmj/audio.js'
 
 const GUIDE_KEY = 'whmj_guide_v1'
 
+/** 参考素材目录，取自开源项目的 UI 资源 */
+const XL = `${ASSET_BASE}/xl`
+
 export default
 {
   data()
@@ -276,6 +318,7 @@ export default
       selectedIndex: -1,
       resultVisible: false,
       resultPlayers: [],
+      tingTips: [],
       resultTitle: '',
       resultSub: '',
       countdown: 0,
@@ -346,16 +389,18 @@ export default
 
         if (this.turn === this.mySeat)
         {
+          const hint = this.tingText ? ` · ${this.tingText}` : ''
+
           if (this.options.length)
           {
             const names = this.displayOptions.filter((op) => op.type !== OP_PASS).map((op) => this.opLabel(op)).join(' / ')
 
-            return `自摸/杠：可点「${names}」，或选一张牌打出`
+            return `自摸/杠：可点「${names}」，或选一张牌打出${hint}`
           }
 
           return this.selectedIndex >= 0
-            ? '已选好，点右下角「出牌」打出（或再点一次这张牌）'
-            : '轮到你出牌：先点一张手牌选中'
+            ? `已选好，点右下角「出牌」打出（或再点一次这张牌）${hint}`
+            : `轮到你出牌：先点一张手牌选中${hint}`
         }
 
         const nick = (this.seats[this.turn] || {}).nick || '对手'
@@ -403,6 +448,44 @@ export default
       }
 
       return this.selectedIndex >= 0 ? 'btnDiscard btnDiscard--hint' : 'btnDiscard'
+    },
+
+    /** 听牌提示文案：选中哪张就报哪张的听口 */
+    tingText()
+    {
+      const tips = this.tingTips || []
+
+      if (!tips.length)
+      {
+        return ''
+      }
+
+      if (tips.length === 1 && !tips[0].discard)
+      {
+        return `已听：${tips[0].tiles.map((t) => tileName(t)).join('、')}`
+      }
+
+      if (this.selectedIndex < 0)
+      {
+        return tips.length ? `${tips.length} 张可打进听` : ''
+      }
+
+      const tile = this.hand[this.selectedIndex]
+      const hit = tips.find((item) => item.discard === tile)
+
+      return hit ? `打这张听：${hit.tiles.map((t) => tileName(t)).join('、')}` : ''
+    },
+
+    /** 结算旗标：胜用金字、负用灰字 */
+    resultFlag()
+    {
+      return `${XL}/result/${this.resultTitle.indexOf('负') >= 0 ? 'lose' : 'win'}.png`
+    },
+
+    /** 结算面板默认头像 */
+    defaultFace()
+    {
+      return `${XL}/result/head.png`
     },
 
     /** 结算行：本局分 + 累计分（累计以服务端座位数据为准，晚于结算事件到达也能自动刷新） */
@@ -646,7 +729,7 @@ export default
 
         this.bindEvents()
 
-        /* 重连或整页刷新回来时先重新占用原座位，否则房间路由会拒绝这条连接 */
+        /** 重连或整页刷新回来时先重新占用原座位，否则房间路由会拒绝这条连接 */
         if (this.roomId)
         {
           try
@@ -824,6 +907,11 @@ export default
       on('onHu', (d) => this.applyHu(d))
       on('onGameOver', (d) => this.applyGameOver(d))
 
+      on('onTing', (d) =>
+      {
+        this.tingTips = (d && d.tips) || []
+      })
+
       on('onRoomEnd', () =>
       {
         this.showTip('房间对局已结束')
@@ -925,6 +1013,7 @@ export default
       }
 
       this.remain = d.remain || this.remain
+      this.tingTips = d.tingTips || []
       this.selectedIndex = -1
 
       this.applySceneMode()

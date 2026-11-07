@@ -129,7 +129,10 @@ func (g *Game) winHu(seat, loseSeat int, selfDraw bool, tile int, cont bool) {
 	g.deadline = 0
 	g.firstTurn = false
 
+	// 武汉麻将一炮单响、胡牌即本局结束，不再继续打。
 	if !cont {
+		g.endGame(seat)
+
 		return
 	}
 

@@ -343,6 +343,28 @@ func TingList(c Counts, meldCount int, r Round) []int {
 	return out
 }
 
+// TingMap 返回「打出哪张牌能听哪些牌」，手牌为 3n+2 张时使用。
+// 对每一张可打的牌，扣掉它后按 TingList 判断听口，打不听的牌不出现在结果里。
+func TingMap(c Counts, meldCount int, r Round) map[int][]int {
+	out := make(map[int][]int, 8)
+
+	for t := TileMin; t <= TileMax; t++ {
+		if c[t] <= 0 {
+			continue
+		}
+
+		c[t]--
+
+		if list := TingList(c, meldCount, r); len(list) > 0 {
+			out[t] = list
+		}
+
+		c[t]++
+	}
+
+	return out
+}
+
 // IsTing 判断手牌是否已听牌。
 func IsTing(c Counts, meldCount int, r Round) bool {
 	return len(TingList(c, meldCount, r)) > 0
