@@ -22,59 +22,51 @@ $glass: rgba(6, 26, 18, 0.92);
 .bar__tip { position: relative; display: flex; flex-direction: row; align-items: center; flex: 1; height: 44px; padding: 0 16px; box-sizing: border-box; background: rgba(4, 20, 14, 0.72); border: 1px solid $line; border-radius: 22px; overflow: hidden; }
 .bar__tipText { position: relative; font-size: 18px; line-height: 22px; color: $cream; }
 .bar__tipText--warn { position: relative; color: #FFC46B; }
-.bar__ops { position: relative; display: flex; flex-direction: row; align-items: center; margin-left: 14px; }
-.op { position: relative; display: flex; align-items: center; justify-content: center; width: 68px; height: 68px; margin-left: 10px; border-radius: 34px; background: radial-gradient(circle at 50% 28%, #2AA96F 0%, #11543A 100%); border: 2px solid rgba(255, 217, 138, 0.85); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5); }
-.op__label { position: relative; font-size: 28px; font-weight: 700; color: #FFFFFF; }
-.op--hu { position: relative; display: flex; align-items: center; justify-content: center; width: 68px; height: 68px; margin-left: 10px; border-radius: 34px; background: radial-gradient(circle at 50% 28%, #FFD75E 0%, #E0821F 100%); border: 2px solid #FFF6DC; box-shadow: 0 0 18px rgba(255, 196, 84, 0.6); }
-.op--pass { position: relative; display: flex; align-items: center; justify-content: center; width: 68px; height: 68px; margin-left: 10px; border-radius: 34px; background: rgba(18, 44, 32, 0.94); border: 2px solid rgba(246, 233, 206, 0.4); }
-.op--pass .op__label { position: relative; font-size: 24px; color: rgba(246, 233, 206, 0.9); }
-.btnDiscard { position: relative; display: flex; align-items: center; justify-content: center; width: 150px; height: 56px; margin-left: 12px; border-radius: 28px; background: linear-gradient(160deg, #FFE39A 0%, #D9A44C 100%); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45); }
+.ops { position: absolute; left: 500px; top: 394px; display: flex; flex-direction: row; align-items: center; justify-content: center; width: 620px; height: 130px; pointer-events: none; }
+.op { position: relative; display: flex; align-items: center; justify-content: center; width: 92px; height: 92px; margin: 0 8px; pointer-events: auto; }
+.op__bg { position: absolute; left: 0; top: 0; width: 92px; height: 92px; }
+.op__flag { position: relative; width: 66px; height: 66px; }
+.op__label { position: relative; font-size: 30px; font-weight: 700; color: #FFF6DC; text-shadow: 0 2px 5px rgba(0, 0, 0, 0.7); }
+.op--hu { position: relative; display: flex; align-items: center; justify-content: center; width: 124px; height: 124px; margin: 0 8px; pointer-events: auto; }
+.op--hu .op__bg { position: absolute; left: 0; top: 0; width: 124px; height: 124px; }
+.op--hu .op__flag { position: relative; width: 82px; height: 82px; }
+.op--pass { position: relative; display: flex; align-items: center; justify-content: center; width: 84px; height: 84px; margin: 0 8px; pointer-events: auto; }
+.op--pass .op__bg { position: absolute; left: 0; top: 0; width: 84px; height: 84px; }
+.op--pass .op__flag { position: relative; width: 62px; height: 62px; }
+.btnDiscard { position: relative; display: flex; align-items: center; justify-content: center; width: 150px; height: 56px; margin-left: auto; border-radius: 28px; background: linear-gradient(160deg, #FFE39A 0%, #D9A44C 100%); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45); }
 .btnDiscard__text { position: relative; font-size: 24px; font-weight: 700; color: #2A1C05; letter-spacing: 2px; }
 .btnDiscard--off { position: relative; background: rgba(20, 44, 32, 0.9); border: 1px solid rgba(246, 233, 206, 0.28); box-shadow: none; }
 .btnDiscard--off .btnDiscard__text { position: relative; color: rgba(246, 233, 206, 0.5); }
 .btnDiscard--hint { position: relative; animation: discPulse 1.1s ease-in-out infinite; }
 @keyframes discPulse { 0%, 100% { box-shadow: 0 0 0 rgba(255, 215, 94, 0); } 50% { box-shadow: 0 0 22px rgba(255, 215, 94, 0.85); } }
-.mj-mask { position: absolute; left: 0; top: 0; display: flex; align-items: center; justify-content: center; width: 1334px; height: 750px; background: rgba(2, 8, 6, 0.74); }
+.mj-mask { position: absolute; left: 0; top: 0; display: flex; align-items: center; justify-content: center; width: 1334px; height: 750px; background: rgba(3, 30, 22, 0.78); }
 .mj-mask--clear { position: absolute; left: 0; top: 0; display: flex; align-items: center; justify-content: center; width: 1334px; height: 750px; background: rgba(2, 8, 6, 0.3); pointer-events: none; }
 .mj-mask--top { position: relative; align-items: flex-start; padding-top: 96px; box-sizing: border-box; }
 .card { position: relative; display: flex; flex-direction: column; box-sizing: border-box; padding: 26px 32px; background: linear-gradient(180deg, rgba(60, 36, 18, 0.99) 0%, rgba(30, 17, 8, 0.99) 100%); border: 3px solid #F3C76A; border-radius: 22px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.64), inset 0 0 0 2px rgba(120, 74, 30, 0.7); }
 .mj-mask--clear .card { position: relative; pointer-events: auto; }
-.result { position: relative; display: flex; flex-direction: column; width: 1020px; padding-bottom: 26px; box-sizing: border-box; background: linear-gradient(180deg, rgba(60, 36, 18, 0.99) 0%, rgba(30, 17, 8, 0.99) 100%); border: 3px solid #F3C76A; border-radius: 22px; box-shadow: 0 20px 56px rgba(0, 0, 0, 0.64), inset 0 0 0 2px rgba(120, 74, 30, 0.7); }
-.result__head { position: relative; display: flex; flex-direction: row; align-items: center; height: 138px; padding: 0 34px; box-sizing: border-box; border-bottom: 1px solid rgba(243, 199, 106, 0.26); }
-.result__flag { position: relative; width: 100px; height: 90px; }
-.result__titles { position: relative; display: flex; flex-direction: column; margin-left: 16px; }
-.result__title { position: relative; font-size: 40px; font-weight: 700; letter-spacing: 6px; color: #FFE9B4; text-shadow: 0 3px 0 #7A4A16, 0 6px 14px rgba(0, 0, 0, 0.5); }
-.result__sub { position: relative; margin-top: 8px; font-size: 16px; color: rgba(255, 233, 180, 0.9); }
-.result__round { position: relative; margin-left: auto; padding: 6px 18px; background: rgba(180, 52, 42, 0.92); border: 1px solid rgba(255, 226, 168, 0.72); border-radius: 13px; font-size: 16px; color: #FFF6E2; }
-.result__thead { position: relative; display: flex; flex-direction: row; align-items: center; height: 44px; padding: 0 32px; box-sizing: border-box; background: rgba(0, 0, 0, 0.26); }
-.result__th { position: relative; font-size: 15px; color: rgba(255, 232, 188, 0.56); }
-.result__th--rank { position: relative; width: 56px; flex: none; text-align: center; }
-.result__th--player { position: relative; width: 268px; flex: none; }
-.result__th--fans { position: relative; flex: 1; }
-.result__th--score { position: relative; width: 112px; flex: none; text-align: right; }
-.result__th--total { position: relative; width: 112px; flex: none; text-align: right; }
-.result__row { position: relative; display: flex; flex-direction: row; align-items: center; height: 82px; margin: 9px 22px 0; padding: 0 10px; box-sizing: border-box; background: rgba(255, 255, 255, 0.045); border: 1px solid rgba(255, 214, 140, 0.14); border-radius: 12px; }
-.result__row--me { position: relative; background: linear-gradient(90deg, rgba(243, 199, 106, 0.2) 0%, rgba(243, 199, 106, 0.06) 100%); border-color: rgba(243, 199, 106, 0.68); }
-.result__rank { position: relative; display: flex; align-items: center; justify-content: center; width: 56px; flex: none; height: 40px; font-size: 21px; font-weight: 700; color: #F3C76A; }
-.result__medal { position: absolute; left: 0; top: 0; width: 56px; height: 40px; }
-.result__player { position: relative; display: flex; flex-direction: row; align-items: center; width: 268px; flex: none; }
-.result__face { position: relative; width: 54px; height: 54px; border: 2px solid rgba(243, 199, 106, 0.66); border-radius: 27px; }
-.result__meta { position: relative; display: flex; flex-direction: column; margin-left: 10px; }
-.result__name { position: relative; font-size: 19px; color: #FFF6E2; }
-.result__hu { position: relative; margin-top: 3px; font-size: 13px; color: #7BE3A5; }
-.result__fans { position: relative; display: flex; flex-direction: row; flex-wrap: wrap; align-content: center; flex: 1; }
-.result__fan { position: relative; margin: 2px 6px 2px 0; padding: 2px 9px; background: rgba(180, 52, 42, 0.82); border: 1px solid rgba(255, 214, 140, 0.46); border-radius: 8px; font-size: 13px; color: #FFF0D4; }
-.result__none { position: relative; font-size: 14px; color: rgba(255, 232, 188, 0.34); }
-.result__score { position: relative; width: 112px; flex: none; font-size: 26px; font-weight: 700; text-align: right; }
-.result__total { position: relative; width: 112px; flex: none; font-size: 16px; text-align: right; color: rgba(255, 240, 210, 0.58); }
-.result__ops { position: relative; display: flex; flex-direction: row; justify-content: center; margin-top: 26px; }
-.result__btn { position: relative; display: flex; align-items: center; justify-content: center; width: 264px; height: 78px; margin: 0 16px; background: linear-gradient(180deg, #B77C32 0%, #6B421A 100%); border: 3px solid #F3C76A; border-radius: 37px; box-shadow: 0 6px 0 rgba(72, 46, 14, 0.7), inset 0 2px 6px rgba(255, 255, 255, 0.26); }
-.result__btn--off { position: relative; background: linear-gradient(180deg, #6B6259 0%, #3A352F 100%); border-color: rgba(243, 199, 106, 0.5); }
-.result__btnText { position: relative; font-size: 23px; font-weight: 700; letter-spacing: 2px; color: #FFE9B4; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.62); }
+.result { position: relative; display: flex; flex-direction: column; width: 1000px; height: 520px; }
+.result__bg { position: absolute; left: 0; top: 0; width: 1000px; height: 470px; }
+.result__banner { position: absolute; left: 290px; top: -48px; width: 420px; height: 140px; z-index: 2; }
+.result__close { position: absolute; right: -20px; top: -20px; width: 64px; height: 64px; z-index: 3; }
+.result__sheet { position: relative; display: flex; flex-direction: column; margin-top: 96px; padding: 0 40px 0 30px; box-sizing: border-box; }
+.result__row { position: relative; display: flex; flex-direction: row; align-items: center; height: 84px; padding: 0 12px; box-sizing: border-box; }
+.result__row--me { position: relative; background: rgba(255, 214, 120, 0.24); border-radius: 10px; }
+.result__avatar { position: relative; width: 92px; flex: none; }
+.result__face { position: relative; width: 62px; height: 62px; border: 2px solid #E8C25A; border-radius: 10px; }
+.result__banker { position: absolute; left: -6px; top: -8px; width: 28px; height: 28px; }
+.result__tiles { position: relative; display: flex; flex-direction: row; align-items: center; flex: 1; overflow: hidden; }
+.result__tile { position: relative; width: 30px; height: 42px; margin-right: 1px; }
+.result__none { position: relative; font-size: 16px; color: rgba(90, 70, 30, 0.6); }
+.result__score { position: relative; width: 90px; flex: none; margin-right: 52px; font-size: 26px; font-weight: 700; text-align: right; }
+.result__winner { position: absolute; right: 4px; top: 8px; width: 46px; height: 46px; }
+.result__ops { position: relative; display: flex; flex-direction: row; justify-content: center; margin-top: 12px; }
+.result__btn { position: relative; display: flex; align-items: center; justify-content: center; width: 220px; height: 62px; margin: 0 14px; background: linear-gradient(180deg, #F3D68A 0%, #C08A32 100%); border: 3px solid #FFF3D2; border-radius: 31px; box-shadow: 0 5px 0 rgba(112, 76, 24, 0.7); }
+.result__btn--off { position: relative; background: linear-gradient(180deg, #A9A393 0%, #6F6A5C 100%); border-color: rgba(255, 243, 210, 0.6); }
+.result__btnText { position: relative; font-size: 21px; font-weight: 700; letter-spacing: 2px; color: #4A2C08; }
 .rule { position: relative; display: flex; flex-direction: column; width: 820px; }
 .rule__title { position: relative; font-size: 31px; font-weight: 700; letter-spacing: 4px; color: #FFE9B4; text-align: center; text-shadow: 0 2px 0 #7A4A16; }
 .rule__text { position: relative; margin-top: 18px; font-size: 18px; line-height: 31px; color: rgba(255, 238, 206, 0.84); }
-.rule__ok { position: relative; display: flex; align-items: center; justify-content: center; height: 72px; margin-top: 22px; background: linear-gradient(180deg, #3E74BC 0%, #123A6E 100%); border: 3px solid #F3C76A; border-radius: 36px; box-shadow: 0 6px 0 rgba(72, 46, 14, 0.7), inset 0 2px 6px rgba(255, 255, 255, 0.26); }
+.rule__ok { position: relative; display: flex; align-items: center; justify-content: center; height: 72px; margin-top: 22px; background: linear-gradient(180deg, #F3D68A 0%, #C08A32 100%); border: 3px solid #FFF3D2; border-radius: 36px; box-shadow: 0 6px 0 rgba(112, 76, 24, 0.7), inset 0 2px 6px rgba(255, 255, 255, 0.26); }
 .rule__okText { position: relative; font-size: 23px; font-weight: 700; letter-spacing: 2px; color: #FFE9B4; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); }
 .guide__step { position: relative; display: flex; flex-direction: row; margin-top: 14px; }
 .guide__dot { position: relative; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 16px; background: linear-gradient(180deg, #FFE29A 0%, #C48A2E 100%); border: 1px solid #FFF3D2; }
@@ -141,55 +133,44 @@ $glass: rgba(6, 26, 18, 0.92);
         <view class="bar__tip">
           <text :class="tipWarn ? 'bar__tipText bar__tipText--warn' : 'bar__tipText'">{{ statusText }}</text>
         </view>
-        <view class="bar__ops">
-          <view v-for="op in displayOptions" :key="op.type + '_' + op.tile" :class="opClass(op.type)" @click="doAction(op)">
-            <text class="op__label">{{ opLabel(op) }}</text>
-          </view>
-          <view
-            v-if="phase === 'play' && discardVisible"
-            :class="discardClass"
-            @click="discardSelected">
-            <text class="btnDiscard__text">出 牌</text>
-          </view>
+        <view
+          v-if="phase === 'play' && discardVisible"
+          :class="discardClass"
+          @click="discardSelected">
+          <text class="btnDiscard__text">出 牌</text>
+        </view>
+      </view>
+
+      <view class="ops" v-if="!resultVisible && !guideVisible && displayOptions.length">
+        <view v-for="op in displayOptions" :key="op.type + '_' + op.tile" :class="opClass(op.type)" @click="doAction(op)">
+          <image class="op__bg" :src="opBg(op.type)" mode="aspectFit" />
+          <image v-if="opFlag(op.type)" class="op__flag" :src="opFlag(op.type)" mode="aspectFit" />
+          <text v-else class="op__label">{{ opLabel(op) }}</text>
         </view>
       </view>
 
       <view class="mj-mask" v-if="resultVisible">
         <view class="result">
-          <view class="result__head">
-            <image class="result__flag" :src="resultFlag" mode="aspectFit" />
-            <view class="result__titles">
-              <text class="result__title">{{ resultTitle }}</text>
-              <text class="result__sub">{{ resultSub }}</text>
-            </view>
-            <text class="result__round">第 {{ round }} / {{ maxRound }} 局</text>
-          </view>
-          <view class="result__thead">
-            <text class="result__th result__th--rank">名次</text>
-            <text class="result__th result__th--player">玩家</text>
-            <text class="result__th result__th--fans">番型</text>
-            <text class="result__th result__th--score">本局</text>
-            <text class="result__th result__th--total">累计</text>
-          </view>
-          <view
-            class="result__row"
-            :class="item.seat === mySeat ? 'result__row result__row--me' : 'result__row'"
-            v-for="(item, index) in resultRows"
-            :key="item.seat">
-            <text class="result__rank">{{ index + 1 }}</text>
-            <view class="result__player">
-              <image class="result__face" :src="item.avatar || defaultFace" mode="aspectFill" />
-              <view class="result__meta">
-                <text class="result__name">{{ item.seat === mySeat ? '我 · ' : '' }}{{ item.nick }}</text>
-                <text class="result__hu" v-if="item.hu">胡牌</text>
+          <image class="result__bg" :src="resultSheetBg" mode="scaleToFill" />
+          <image class="result__banner" :src="resultBanner" mode="aspectFit" />
+          <image class="result__close" :src="closeBtn" @click="resultVisible = false" mode="aspectFit" />
+          <view class="result__sheet">
+            <view
+              class="result__row"
+              :class="item.seat === mySeat ? 'result__row result__row--me' : 'result__row'"
+              v-for="item in resultRows"
+              :key="item.seat">
+              <view class="result__avatar">
+                <image class="result__face" :src="item.avatar || defaultFace" mode="aspectFill" />
+                <image v-if="item.isBanker" class="result__banker" :src="bankerIcon" mode="aspectFit" />
               </view>
+              <view class="result__tiles">
+                <image v-for="(t, ti) in (item.hand || [])" :key="ti" class="result__tile" :src="tileImage(t)" mode="aspectFit" />
+                <text v-if="!item.hand || !item.hand.length" class="result__none">{{ item.hu ? '胡牌' : '未胡' }}</text>
+              </view>
+              <text class="result__score" :style="item.score >= 0 ? 'color:#D8402C' : 'color:#3C5A48'">{{ item.score >= 0 ? '+' : '' }}{{ item.score }}</text>
+              <image v-if="item.hu" class="result__winner" :src="winnerIcon" mode="aspectFit" />
             </view>
-            <view class="result__fans">
-              <text class="result__fan" v-for="fan in item.fans" :key="fan.name">{{ fan.name }} {{ fan.fan }}番</text>
-              <text class="result__none" v-if="!item.fans || !item.fans.length">{{ item.hu ? '屁胡' : '未胡' }}</text>
-            </view>
-            <text class="result__score" :style="item.score >= 0 ? 'color:#FF8A7A' : 'color:#7BE3A5'">{{ item.score >= 0 ? '+' : '' }}{{ item.score }}</text>
-            <text class="result__total">{{ item.total >= 0 ? '+' : '' }}{{ item.total }}</text>
           </view>
           <view class="result__ops">
             <view class="result__btn" :class="round >= maxRound ? 'result__btn result__btn--off' : 'result__btn'" @click="resultVisible = false">
@@ -287,7 +268,7 @@ $glass: rgba(6, 26, 18, 0.92);
  *                            手牌点击改为随时可选中并给出原因提示；出牌按钮我的回合常驻；
  *                            新增新手引导与阶段状态条，解决「点不动、看不懂」问题
  */
-import { ASSET_BASE, OP_TEXT, OP_PASS, OP_HU, OP_CHI, OP_PENG, OP_GANG, OP_AN_GANG, OP_BU_GANG, tileName } from '@/utils/whmj/const.js'
+import { ASSET_BASE, OP_TEXT, OP_PASS, OP_HU, OP_CHI, OP_PENG, OP_GANG, OP_AN_GANG, OP_BU_GANG, tileName, tileKey } from '@/utils/whmj/const.js'
 import { getToken } from '@/utils/whmj/http.js'
 import socket from '@/utils/whmj/socket.js'
 import audio from '@/utils/whmj/audio.js'
@@ -296,6 +277,9 @@ const GUIDE_KEY = 'whmj_guide_v1'
 
 /** 参考素材目录，取自开源项目的 UI 资源 */
 const XL = `${ASSET_BASE}/xl`
+
+/** xiyoufang/mahjong 原版牌桌与结算素材 */
+const XYF = `${ASSET_BASE}/xyf`
 
 export default
 {
@@ -476,16 +460,42 @@ export default
       return hit ? `打这张听：${hit.tiles.map((t) => tileName(t)).join('、')}` : ''
     },
 
-    /** 结算旗标：胜用金字、负用灰字 */
-    resultFlag()
+    /** 结算横幅：胜利 / 失败 / 流局 */
+    resultBanner()
     {
-      return `${XL}/result/${this.resultTitle.indexOf('负') >= 0 ? 'lose' : 'win'}.png`
+      const name = this.resultTitle.indexOf('胜') >= 0 ? 'result_win' : (this.resultTitle.indexOf('负') >= 0 ? 'result_lose' : 'result_draw')
+
+      return `${XYF}/result/${name}.png`
+    },
+
+    /** 结算卷轴底图 */
+    resultSheetBg()
+    {
+      return `${XYF}/result/im_over_bg.png`
+    },
+
+    /** 结算右上角关闭按钮 */
+    closeBtn()
+    {
+      return `${XYF}/result/im_close_btn.png`
+    },
+
+    /** 庄家角标 */
+    bankerIcon()
+    {
+      return `${XYF}/result/over_banker.png`
+    },
+
+    /** 胡牌旗帜 */
+    winnerIcon()
+    {
+      return `${XYF}/result/winner.png`
     },
 
     /** 结算面板默认头像 */
     defaultFace()
     {
-      return `${XL}/result/head.png`
+      return `${XYF}/table/im_defaulthead_0.png`
     },
 
     /** 结算行：本局分 + 累计分（累计以服务端座位数据为准，晚于结算事件到达也能自动刷新） */
@@ -1331,6 +1341,47 @@ export default
       {
         this.showTip(err.message || '出牌失败')
       }
+    },
+
+    /**
+     * 操作按钮底图：胡与杠用倾斜牌造型，其余用绿色圆底
+     * @param {String} type 操作类型
+     * @returns {String} 图片地址
+     */
+    opBg(type)
+    {
+      const big = type === OP_HU || type === OP_GANG || type === OP_AN_GANG || type === OP_BU_GANG
+
+      return `${XYF}/table/${big ? 'btn_action0' : 'btn_action1'}.png`
+    },
+
+    /**
+     * 操作按钮字牌；吃没有对应原版字牌，返回空串由文字兜底
+     * @param {String} type 操作类型
+     * @returns {String} 图片地址
+     */
+    opFlag(type)
+    {
+      const map = {
+        [OP_PASS]: 'flag_guo',
+        [OP_PENG]: 'flag_peng',
+        [OP_GANG]: 'flag_gang',
+        [OP_AN_GANG]: 'flag_gang',
+        [OP_BU_GANG]: 'flag_gang',
+        [OP_HU]: 'flag_hu'
+      }
+
+      return map[type] ? `${XYF}/table/${map[type]}.png` : ''
+    },
+
+    /**
+     * 牌编码转牌面图片
+     * @param {Number} tile 牌编码
+     * @returns {String} 图片地址
+     */
+    tileImage(tile)
+    {
+      return `${ASSET_BASE}/tiles/${tileKey(tile)}.png`
     },
 
     /**

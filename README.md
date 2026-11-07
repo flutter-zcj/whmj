@@ -4,7 +4,7 @@
 > 技术栈：**uni-app(Vue3) + Phaser 3** 前端，**Go + cherry** 服务端，H5 横屏 1334×750
 >
 > 开源参考（**思路参考 + 素材复用，非代码移植**）：
-> - [xiyoufang/mahjong](https://github.com/xiyoufang/mahjong)：C++ `GameLogic/GameCmd/AIEngine`，参考其牌局状态机、操作优先级与 AI 决策骨架；
+> - [xiyoufang/mahjong](https://github.com/xiyoufang/mahjong)：C++ `GameLogic/GameCmd/AIEngine`，参考其牌局状态机、操作优先级与 AI 决策骨架；**牌桌与结算 UI 已用其 `Resources/res` 原版素材高保真复刻**（绿绒布台面、金边罗盘、圆形过/碰/胡按钮、胜利绸带卷轴）；
 > - [fwhappy/mahjong](https://github.com/fwhappy/mahjong)：Go `win/ting/suggest/weight/wall`，参考其胡牌拆解、听牌枚举与出牌建议思路，落地为 `internal/rule/win.go` 的 `TingList/TingMap`；
 > - [xYajun/XianLaiGame](https://github.com/xYajun/XianLaiGame)：提供大厅、牌面、牌桌、结算、操作按钮 PNG 素材（183 个，见 `web/src/static/whmj/xl/`）。
 >
@@ -21,7 +21,8 @@ whmj/
 │   ├── src/pages/whmj/         login.vue 登录 · index.vue 大厅 · table.vue 牌桌
 │   ├── src/utils/whmj/         api/http/socket/pomelo/protocol/audio/const/table(scene.js)
 │   ├── src/static/whmj/        牌面、图标、音效、生成资源（gen/）
-│   │   └── xl/                  XianLaiGame 素材：hall/tile/table/result/action
+│   │   ├── xl/                  XianLaiGame 素材：hall/tile/table/result/action
+│   │   └── xyf/                 xiyoufang/mahjong 原版牌桌与结算素材（table/result）
 │   └── tools/gen_whmj_art.py   美术资源生成器（PIL，无外部素材）
 ├── server/                     服务端（Go 1.24 + cherry v1.6.9）
 │   ├── main.go                 cherry Application：pomelo 解析器 + WS 连接器 + HTTP
@@ -136,11 +137,15 @@ cd server && CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o whmj .
 | 心跳间隔改为服务端超时的一半，避免 60s 掉线 | 通过（`pomelo.js`） |
 | 刷新页面自动回房并恢复牌局进度 | 通过（房号 140884，第 3/59 手恢复） |
 | 全量回归：`go build/vet/test`、`npm run build:h5` | 通过 |
+| 牌桌按 xiyoufang/mahjong README 截图复刻：绿绒布台面 + 中央淡龙纹 + 金边方形罗盘 + 黄数码管 + 「剩余 N 张」胶囊 + 亮黄绿牌墙 + 青框头像 | 通过（浏览器截图） |
+| 操作按钮改为原版圆形发光底 + 过/碰/杠/胡字牌（胡为倾斜麻将牌造型，最大最醒目） | 通过（浏览器截图） |
+| 胜负/流局结算改为红色绸带横幅 + 米黄卷轴 + 四家头像/手牌缩略图/分数 + 胡旗/庄标/关闭按钮 | 通过（浏览器截图） |
+| 结算快照携带 `hand`（`ServerPlayer.Hand`），供四家手牌缩略图渲染 | 通过（`go test` + 浏览器） |
 
 ## 7. 已知边界
 
 - 支付为模拟，未接入任何支付 SDK；登录为账号体系，不含微信/QQ 登录。
 - 四川麻将、拖拉机、斗地主、卡五星、晃晃、跑得快六个入口为占位（点击提示「即将上线」）。
-- 牌面、大厅、牌桌、结算 PNG 取自 `xYajun/XianLaiGame`（牌面放大 2 倍），图标与音效自绘；**不复制原版 APK 的像素与音频**。原包 `res.dat` 的加密方式已还原（XXTEA，密钥 `bzxgmj`，见 `docs/原版APK逆向分析.md`），仅用于规则比对。
-- 三个开源项目为**思路参考 + 素材复用，非代码移植**：`xiyoufang/mahjong`、`fwhappy/mahjong` 都不是武汉红中赖子杠规则，整体替换会让皮子/赖子、二五八将、开口、番型与一炮单响失效。目前吸收的是状态机与操作优先级骨架、胡牌拆解/听牌枚举/出牌建议思路（`TingList`、`TingMap`、单响结算），规则主干仍由 `internal/rule` + `internal/game` 自研维护。
+- 牌面与大厅 PNG 取自 `xYajun/XianLaiGame`（牌面放大 2 倍），牌桌与结算 PNG 取自 `xiyoufang/mahjong` 的 `Resources/res`（43 个文件，见 `web/src/static/whmj/xyf/`），图标与音效自绘；**不复制原版 APK 的像素与音频**。原包 `res.dat` 的加密方式已还原（XXTEA，密钥 `bzxgmj`，见 `docs/原版APK逆向分析.md`），仅用于规则比对。
+- **本轮只做 UI 复刻，规则层未改**（按确认的分步方案）：`xiyoufang/mahjong` 是 136 张、含东南西北中发白的经典麻将（平胡/碰碰胡/清色/七对/钓鱼/扎鸟），`fwhappy/mahjong` 亦非武汉红中赖子杠规则。整体替换会重做牌张模型、牌面图、胡牌算法、番型、结算、AI 与全部单测，并使皮子/赖子、二五八将、开口、一炮单响失效，**136 张规则整体重写留待下一轮**。当前规则主干仍由 `internal/rule` + `internal/game` 维护，仅吸收状态机骨架与听牌枚举（`TingList`/`TingMap`）、单响结算思路；素材复刻不含任何原项目 C++ 代码。
 - 牌张为 112 张（万筒条 + 红中）；原版含风牌与发/白（136 张）并支持 4 种房型与「开口番/口口番」，差异清单见逆向分析文档第 3 节。

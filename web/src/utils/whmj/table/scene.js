@@ -136,6 +136,13 @@ export default class TableScene extends Phaser.Scene
 
     this.load.image('table_bg', `${ASSET_BASE}/bg/table_bg.jpg`)
     this.load.image('avatar', `${ASSET_BASE}/ui/fazai.png`)
+
+    const xyf = `${ASSET_BASE}/xyf/table`
+
+    ;['bg_game', 'bg_center', 'time_bg', 'im_defaultheadbg', 'im_defaulthead_0', 'im_defaulthead_1', 'im_userscore', 'img_banker', 'wall_back'].forEach((name) =>
+    {
+      this.load.image(`xyf_${name}`, `${xyf}/${name}.png`)
+    })
   }
 
   /** 构建静态图层 */
@@ -162,170 +169,73 @@ export default class TableScene extends Phaser.Scene
     }
   }
 
-  /** 星空底图 + 上下压暗，保证边缘文字可读 */
+  /** 原版绿绒布桌布：整幅铺满，四周自带压暗 */
   drawBackground()
   {
-    const bg = this.add.image(STAGE_WIDTH / 2, STAGE_HEIGHT / 2, 'table_bg')
+    const bg = this.add.image(STAGE_WIDTH / 2, STAGE_HEIGHT / 2, 'xyf_bg_game')
 
     bg.setDisplaySize(STAGE_WIDTH, STAGE_HEIGHT)
-
-    const top = this.add.graphics()
-
-    top.fillGradientStyle(0x02060e, 0x02060e, 0x02060e, 0x02060e, 0.82, 0.82, 0.1, 0.1)
-    top.fillRect(0, 0, STAGE_WIDTH, 190)
-
-    const bottom = this.add.graphics()
-
-    bottom.fillGradientStyle(0x02060e, 0x02060e, 0x02060e, 0x02060e, 0.1, 0.1, 0.9, 0.9)
-    bottom.fillRect(0, STAGE_HEIGHT - 210, STAGE_WIDTH, 210)
   }
 
-  /** 玉面牌桌：半透绒布 + 双层描金 + 四角云纹，让星空从四周透出形成悬浮感 */
+  /** 台面中央浅绿暗花与上下压暗，复刻原版绿呢桌面 */
   drawTable()
   {
-    const inset = 14
-    const w = STAGE_WIDTH - inset * 2
-    const h = STAGE_HEIGHT - inset * 2
-    const radius = 32
+    const motif = this.add.image(CENTER.x, CENTER.y, 'xyf_bg_center')
 
-    const g = this.add.graphics()
+    motif.setDisplaySize(720, 720)
+    motif.setAlpha(0.42)
 
-    /* 桌面投影 */
-    g.fillStyle(0x000000, 0.42)
-    g.fillRoundedRect(inset + 3, inset + 9, w, h, radius)
+    const shade = this.add.graphics()
 
-    /* 玉面主体：半透明墨绿，透出星空 */
-    g.fillStyle(0x0A3627, 0.8)
-    g.fillRoundedRect(inset, inset, w, h, radius)
-
-    /* 顶部受光区 */
-    g.fillStyle(0x1C6748, 0.2)
-    g.fillRoundedRect(inset + 4, inset + 4, w - 8, 240, { tl: radius - 4, tr: radius - 4, bl: 0, br: 0 })
-
-    /* 底部暗角 */
-    g.fillStyle(0x02100A, 0.34)
-    g.fillRoundedRect(inset + 4, inset + h - 190, w - 8, 186, { tl: 0, tr: 0, bl: radius - 4, br: radius - 4 })
-
-    /* 中央极淡辉光，聚焦视线 */
-    g.fillStyle(0x37996F, 0.07)
-    g.fillCircle(CENTER.x, CENTER.y, 250)
-
-    /* 双层描金边框 */
-    g.lineStyle(3, 0xD9B36B, 0.5)
-    g.strokeRoundedRect(inset + 9, inset + 9, w - 18, h - 18, radius - 6)
-    g.lineStyle(1, 0xD9B36B, 0.22)
-    g.strokeRoundedRect(inset + 19, inset + 19, w - 38, h - 38, radius - 10)
-
-    /* 四角云纹装饰 */
-    const corners = [
-      { x: inset + 24, y: inset + 24, sx: 1, sy: 1 },
-      { x: STAGE_WIDTH - inset - 24, y: inset + 24, sx: -1, sy: 1 },
-      { x: inset + 24, y: STAGE_HEIGHT - inset - 24, sx: 1, sy: -1 },
-      { x: STAGE_WIDTH - inset - 24, y: STAGE_HEIGHT - inset - 24, sx: -1, sy: -1 }
-    ]
-
-    corners.forEach((c) =>
-    {
-      g.lineStyle(2, 0xD9B36B, 0.4)
-
-      for (let i = 1; i <= 3; i++)
-      {
-        const r = 15 * i
-
-        g.beginPath()
-        g.arc(c.x, c.y, r, c.sx > 0 ? 0 : Math.PI / 2, c.sx > 0 ? Math.PI / 2 : Math.PI, false)
-        g.strokePath()
-      }
-
-      g.lineBetween(c.x, c.y, c.x + 50 * c.sx, c.y)
-      g.lineBetween(c.x, c.y, c.x, c.y + 50 * c.sy)
-    })
+    shade.fillGradientStyle(0x032B22, 0x032B22, 0x032B22, 0x032B22, 0.3, 0.3, 0, 0)
+    shade.fillRect(0, 0, STAGE_WIDTH, 110)
+    shade.fillGradientStyle(0x032B22, 0x032B22, 0x032B22, 0x032B22, 0, 0, 0.34, 0.34)
+    shade.fillRect(0, STAGE_HEIGHT - 140, STAGE_WIDTH, 140)
   }
 
-  /** 中央方位盘：刻线环、剩余牌数、倒计时与四方方位字 */
+  /** 中央罗盘：原版金边绿框 + 黄色数码管 + 右侧剩余张数胶囊 */
   drawCenter()
   {
-    const { x: cx, y: cy, r } = CENTER
+    const { x: cx, y: cy } = CENTER
 
     this.centerPos = { x: cx, y: cy }
 
-    const g = this.add.graphics()
+    const frame = this.add.image(cx, cy, 'xyf_time_bg')
 
-    g.fillStyle(0x04150E, 0.6)
-    g.fillCircle(cx, cy, r + 12)
-    g.lineStyle(2, 0xD9B36B, 0.4)
-    g.strokeCircle(cx, cy, r + 12)
+    frame.setDisplaySize(128, 128)
+    this.layers.effect.add(frame)
 
-    g.fillStyle(0x0B2417, 0.94)
-    g.fillCircle(cx, cy, r)
-    g.lineStyle(2, 0xD9B36B, 0.62)
-    g.strokeCircle(cx, cy, r)
-    g.lineStyle(1, 0x5FD6A4, 0.3)
-    g.strokeCircle(cx, cy, r - 14)
-
-    for (let i = 0; i < 24; i++)
-    {
-      const a = Math.PI * 2 * i / 24
-      const big = i % 6 === 0
-
-      g.lineStyle(2, 0xD9B36B, big ? 0.7 : 0.26)
-      g.lineBetween(
-        cx + Math.cos(a) * (r - 2),
-        cy + Math.sin(a) * (r - 2),
-        cx + Math.cos(a) * (r - (big ? 14 : 8)),
-        cy + Math.sin(a) * (r - (big ? 14 : 8))
-      )
-    }
-
-    this.layers.effect.add(g)
-
-    this.centerBig = this.add.text(cx, cy - 2,
+    this.centerBig = this.add.text(cx, cy + 2,
     '', {
-      fontFamily: FONT,
-      fontSize: '56px',
+      fontFamily: 'Menlo, Consolas, monospace',
+      fontSize: '44px',
       fontStyle: 'bold',
-      color: '#8FF3C4'
-    }).setOrigin(0.5).setShadow(0, 0, '#1d6b4a', 16, false, true)
+      color: '#F6D64A'
+    }).setOrigin(0.5).setShadow(0, 0, '#C98A16', 14, false, true)
 
-    this.centerLabel = this.add.text(cx, cy - 44,
+    const cap = this.add.graphics()
+
+    cap.fillStyle(0x0A4B33, 0.86)
+    cap.fillRoundedRect(cx + 84, cy - 21, 156, 42, 21)
+    cap.lineStyle(1.5, 0x4FB37C, 0.8)
+    cap.strokeRoundedRect(cx + 84, cy - 21, 156, 42, 21)
+
+    this.centerLabel = this.add.text(cx + 162, cy,
     '', {
       fontFamily: FONT,
-      fontSize: '17px',
-      color: '#BFD9C9'
+      fontSize: '19px',
+      color: '#A8E8BF'
     }).setOrigin(0.5)
 
-    this.centerFoot = this.add.text(cx, cy + 42,
+    this.centerFoot = this.add.text(cx, cy + 78,
     '', {
       fontFamily: FONT,
-      fontSize: '17px',
-      color: '#FFD98A'
+      fontSize: '16px',
+      color: '#CDEBD6'
     }).setOrigin(0.5)
 
-    this.layers.effect.add([this.centerBig, this.centerLabel, this.centerFoot])
-
-    /* 四方方位字，贴在圆盘外侧 */
+    this.layers.effect.add([cap, this.centerBig, this.centerLabel, this.centerFoot])
     this.dirLabels = []
-
-    VIEW_NAMES.forEach((name, i) =>
-    {
-      const pos = [
-        { x: cx, y: cy + r + 30 },
-        { x: cx + r + 40, y: cy },
-        { x: cx, y: cy - r - 30 },
-        { x: cx - r - 40, y: cy }
-      ][i]
-
-      const label = this.add.text(pos.x, pos.y, name,
-      {
-        fontFamily: FONT,
-        fontSize: '24px',
-        fontStyle: 'bold',
-        color: '#8FA79A'
-      }).setOrigin(0.5)
-
-      this.dirLabels.push(label)
-      this.layers.effect.add(label)
-    })
   }
 
   /**
@@ -478,28 +388,12 @@ export default class TableScene extends Phaser.Scene
 
     const remain = (this.state && this.state.remain) || 0
 
-    if (this.countdown > 0)
-    {
-      this.centerBig.setText(String(this.countdown).padStart(2, '0'))
-      this.centerBig.setColor(this.countdown <= 3 ? '#FF9A6B' : '#8FF3C4')
-      this.centerLabel.setText('倒计时')
-      this.centerFoot.setText(turnSeat === mySeat ? '轮到你了' : '等待中')
-    }
-    else
-    {
-      this.centerBig.setText(String(remain))
-      this.centerBig.setColor('#F5E6C8')
-      this.centerLabel.setText('剩余牌数')
-      this.centerFoot.setText('')
-    }
+    const show = this.countdown > 0 ? this.countdown : remain
 
-    if (this.dirLabels)
-    {
-      this.dirLabels.forEach((label, i) =>
-      {
-        label.setColor(i === this.viewOf(turnSeat) ? '#FFD75E' : '#8FA79A')
-      })
-    }
+    this.centerBig.setText(String(show).padStart(2, '0'))
+    this.centerBig.setColor(this.countdown > 0 && this.countdown <= 3 ? '#FF9A6B' : '#F6D64A')
+    this.centerLabel.setText(`剩余 ${remain} 张`)
+    this.centerFoot.setText('')
   }
 
   /**
@@ -594,7 +488,7 @@ export default class TableScene extends Phaser.Scene
           y = BACK_SIDE.y + i * BACK_SIDE.pitch + h / 2
         }
 
-        this.layers.back.add(this.makeTile('tile_back_wall', x, y, w, h, view === 1 || view === 3 ? 90 : 0))
+        this.layers.back.add(this.makeTile('xyf_wall_back', x, y, w, h, view === 1 || view === 3 ? 90 : 0))
       }
     })
   }
@@ -973,55 +867,53 @@ export default class TableScene extends Phaser.Scene
       const active = this.state.turn === index && this.state.phase === 'play'
       const self = index === me
 
-      const g = this.add.graphics()
+      const cxAvatar = box.x + 34
+      const cyAvatar = box.y + box.h / 2
+      const frame = this.add.image(cxAvatar, cyAvatar, 'xyf_im_defaultheadbg')
 
-      g.fillStyle(0x04150E, 0.78)
-      g.fillRoundedRect(box.x, box.y, box.w, box.h, 14)
-      g.lineStyle(2, active ? 0xFFD75E : 0x3C5348, active ? 1 : 0.55)
-      g.strokeRoundedRect(box.x, box.y, box.w, box.h, 14)
+      frame.setDisplaySize(62, 62)
+      this.layers.panel.add(frame)
+
+      const face = this.add.image(cxAvatar, cyAvatar, index % 2 ? 'xyf_im_defaulthead_1' : 'xyf_im_defaulthead_0')
+
+      face.setDisplaySize(48, 48)
+      face.setAlpha(seat.finished ? 0.45 : 1)
+      this.layers.panel.add(face)
 
       if (active)
       {
-        g.lineStyle(3, 0xFFD75E, 0.32)
-        g.strokeRoundedRect(box.x - 4, box.y - 4, box.w + 8, box.h + 8, 17)
+        const glow = this.add.graphics()
+
+        glow.lineStyle(3, 0xFFE07A, 0.9)
+        glow.strokeRoundedRect(cxAvatar - 34, cyAvatar - 34, 68, 68, 12)
+        this.layers.panel.add(glow)
       }
 
-      this.layers.panel.add(g)
+      const scoreBg = this.add.image(box.x + 118, cyAvatar, 'xyf_im_userscore')
 
-      const cxAvatar = box.x + 30
+      scoreBg.setDisplaySize(96, 30)
+      this.layers.panel.add(scoreBg)
 
-      const ring = this.add.graphics()
-
-      ring.lineStyle(2.5, active ? 0xFFD75E : 0xD9B36B, active ? 1 : 0.5)
-      ring.strokeCircle(cxAvatar, box.y + box.h / 2, 21)
-      this.layers.panel.add(ring)
-
-      const avatar = this.add.image(cxAvatar, box.y + box.h / 2, 'avatar')
-
-      avatar.setDisplaySize(34, 34)
-      avatar.setAlpha(seat.finished ? 0.4 : 1)
-      this.layers.panel.add(avatar)
-
-      const nick = this.add.text(box.x + 58, box.y + 9,
+      const score = this.add.text(box.x + 118, cyAvatar,
       '', {
         fontFamily: FONT,
-        fontSize: '16px',
-        color: seat.finished ? '#8A9A90' : '#FFFFFF'
-      })
-
-      nick.setText(this.ellipsis(self ? `我 · ${seat.nick || '玩家'}` : (seat.nick || '玩家'), 6))
-      this.layers.panel.add(nick)
-
-      const score = this.add.text(box.x + 58, box.y + 31,
-      '', {
-        fontFamily: FONT,
-        fontSize: '18px',
+        fontSize: '17px',
         fontStyle: 'bold',
-        color: (seat.score || 0) >= 0 ? '#7BE3A5' : '#FF9A9A'
-      })
+        color: '#FFE9B4'
+      }).setOrigin(0.5)
 
       score.setText(`${(seat.score || 0) >= 0 ? '+' : ''}${seat.score || 0}`)
       this.layers.panel.add(score)
+
+      const nick = this.add.text(box.x + 88, box.y + box.h + 2,
+      '', {
+        fontFamily: FONT,
+        fontSize: '14px',
+        color: '#CFEBD8'
+      }).setOrigin(0.5, 0)
+
+      nick.setText(this.ellipsis(self ? `我 · ${seat.nick || '玩家'}` : (seat.nick || '玩家'), 7))
+      this.layers.panel.add(nick)
 
       /* 定缺标记 */
       if (seat.que !== undefined && seat.que !== null && seat.que >= 0)
@@ -1043,17 +935,9 @@ export default class TableScene extends Phaser.Scene
       /* 庄家标记 */
       if (seat.isBanker)
       {
-        const zhuang = this.add.text(box.x + 4, box.y - 4,
-        '', {
-          fontFamily: FONT,
-          fontSize: '13px',
-          color: '#3B2A08',
-          backgroundColor: '#F2C14E'
-        })
+        const zhuang = this.add.image(cxAvatar - 26, cyAvatar - 26, 'xyf_img_banker')
 
-        zhuang.setText('庄')
-        zhuang.setOrigin(0, 0)
-        zhuang.setPadding(4, 2, 4, 2)
+        zhuang.setDisplaySize(28, 28)
         this.layers.panel.add(zhuang)
       }
 

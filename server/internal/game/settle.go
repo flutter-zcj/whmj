@@ -35,6 +35,7 @@ type ServerPlayer struct {
 	Ting   bool           `json:"ting"`
 	Hu     bool           `json:"hu"`
 	Fans   []rule.FanItem `json:"fans"`
+	Hand   []int          `json:"hand"`
 }
 
 // winHu 处理一次胡牌并按武汉规则结算：一炮单响，三家都输点。
@@ -255,6 +256,7 @@ func (g *Game) endGame(lastSeat int) {
 			Score:  p.Score,
 			Ting:   p.Ting,
 			Hu:     p.Finished,
+			Hand:   p.Hand.Tiles(),
 		}
 
 		if p.Hu != nil {
