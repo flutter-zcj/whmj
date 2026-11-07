@@ -879,7 +879,6 @@ export default
         {
           this.hand = this.hand.concat([d.tile]).sort((a, b) => a - b)
           this.selectedIndex = -1
-          audio.play('draw')
 
           if (this.scene)
           {
