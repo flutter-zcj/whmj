@@ -197,7 +197,7 @@ $glass: rgba(6, 26, 18, 0.92);
             <view class="guide__dot"><text class="guide__num">1</text></view>
             <view class="guide__body">
               <text class="guide__head">摸牌与出牌</text>
-              <text class="guide__desc">轮到你时点一张手牌选中（会抬起），再点右下角「出牌」；连点同一张也能直接打出。</text>
+              <text class="guide__desc">轮到你时点一张手牌选中（会抬起并发出选中音），再点同一张牌即可打出。</text>
             </view>
           </view>
           <view class="guide__step">
@@ -403,8 +403,8 @@ export default
           }
 
           return this.selectedIndex >= 0
-            ? `已选好，点右下角「出牌」打出（或再点一次这张牌）${hint}`
-            : `轮到你出牌：先点一张手牌选中${hint}`
+            ? `已选中，再点一次这张牌即可打出${hint}`
+            : `轮到你出牌：点一张手牌选中，再点同一张打出${hint}`
         }
 
         const nick = (this.seats[this.turn] || {}).nick || '对手'
@@ -729,16 +729,15 @@ export default
       {
         this.selectedIndex = index
 
-        if (ok)
+        if (ok && index >= 0)
         {
-          audio.play('click')
+          audio.play('select')
         }
       }
 
       scene.onTileDiscard = (tile, index) =>
       {
         this.selectedIndex = index
-        audio.play('click')
         this.discardSelected()
       }
 
@@ -1366,7 +1365,7 @@ export default
 
       if (!tile)
       {
-        this.showTip('请先点一张手牌，选中后再点「出牌」')
+        this.showTip('请先点一张手牌选中，再点同一张打出')
         return
       }
 

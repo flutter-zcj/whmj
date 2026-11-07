@@ -234,6 +234,32 @@ export default class TableScene extends Phaser.Scene
       color: '#CDEBD6'
     }).setOrigin(0.5)
 
+    this.turnPillBg = this.add.graphics()
+
+    this.turnPill = this.add.text(cx, cy - 100,
+    '', {
+      fontFamily: FONT,
+      fontSize: '18px',
+      fontStyle: 'bold',
+      color: '#FFE9A8'
+    }).setOrigin(0.5)
+
+    this.turnRing = this.add.graphics()
+
+    this.turnRing.lineStyle(4, 0xFFD75E, 1)
+    this.turnRing.strokeRoundedRect(cx - 70, cy - 70, 140, 140, 16)
+    this.turnRing.setAlpha(0)
+
+    this.turnRingTween = this.tweens.add({
+      targets: this.turnRing,
+      alpha: { from: 0.3, to: 1 },
+      duration: 680,
+      yoyo: true,
+      repeat: -1,
+      paused: true
+    })
+
+    this.layers.effect.add([this.turnPillBg, this.turnPill, this.turnRing])
     this.layers.effect.add([cap, this.centerBig, this.centerLabel, this.centerFoot])
     this.dirLabels = []
   }
@@ -356,27 +382,9 @@ export default class TableScene extends Phaser.Scene
       return
     }
 
-    /* 已移除「出牌」按钮：轮到自己时点一张手牌就直接打出，不再需要二次确认 */
     if (this.selectMode === 'single')
     {
-      const allow = this.selectableNow()
-
-      if (!allow.ok)
-      {
-        if (this.onToast)
-        {
-          this.onToast(allow.reason)
-        }
-
-        return
-      }
-
-      this.selected = -1
-
-      if (this.onTileDiscard)
-      {
-        this.onTileDiscard(hand[hit], hit)
-      }
+      this.selectTile(hit, hand[hit])
 
       return
     }
@@ -419,6 +427,57 @@ export default class TableScene extends Phaser.Scene
     this.centerBig.setColor(this.countdown > 0 && this.countdown <= 3 ? '#FF9A6B' : '#F6D64A')
     this.centerLabel.setText(`剩余 ${remain} 张`)
     this.centerFoot.setText('')
+    this.updateTurnHint(turnSeat, mySeat)
+  }
+
+  /**
+   * 中央倒计时旁「轮到谁出牌」提示：轮到自己时金色高亮 + 倒计时外圈脉冲
+   * @param {Number} turnSeat 当前行动座位
+   * @param {Number} mySeat 我的座位
+   */
+  updateTurnHint(turnSeat, mySeat)
+  {
+    if (!this.turnPill || !this.turnPillBg)
+    {
+      return
+    }
+
+    const { x: cx, y: cy } = CENTER
+    const me = mySeat || 0
+    const mine = turnSeat === me
+    const seats = (this.state && this.state.seats) || []
+    const nick = (seats[turnSeat] && seats[turnSeat].nick) || '对手'
+
+    this.turnPill.setText(mine ? '轮到你出牌' : `轮到 ${this.ellipsis(nick, 5)} 出牌`)
+    this.turnPill.setColor(mine ? '#FFF0BE' : '#CDEBD6')
+
+    const w = Math.max(136, Math.ceil(this.turnPill.width) + 40)
+    const h = 36
+    const py = cy - 100
+
+    this.turnPillBg.clear()
+    this.turnPillBg.fillStyle(mine ? 0x6E4300 : 0x0A4B33, 0.92)
+    this.turnPillBg.lineStyle(mine ? 2.5 : 1.5, mine ? 0xFFD75E : 0x4FB37C, mine ? 1 : 0.85)
+    this.turnPillBg.fillRoundedRect(cx - w / 2, py - h / 2, w, h, h / 2)
+    this.turnPillBg.strokeRoundedRect(cx - w / 2, py - h / 2, w, h, h / 2)
+
+    if (this.turnRing)
+    {
+      this.turnRing.setVisible(mine)
+
+      if (this.turnRingTween)
+      {
+        if (mine)
+        {
+          this.turnRingTween.resume()
+        }
+        else
+        {
+          this.turnRingTween.pause()
+          this.turnRing.setAlpha(0)
+        }
+      }
+    }
   }
 
   /**
@@ -831,16 +890,6 @@ export default class TableScene extends Phaser.Scene
     }
 
     const allow = this.selectableNow()
-    const wasSelected = this.selected === index
-
-    this.selected = wasSelected ? -1 : index
-
-    this.drawHand()
-
-    if (this.onTileTap)
-    {
-      this.onTileTap(tile, this.selected, allow.ok, allow.reason)
-    }
 
     if (!allow.ok)
     {
@@ -852,10 +901,28 @@ export default class TableScene extends Phaser.Scene
       return
     }
 
-    /* 连点同一张：直接出牌，省掉一次「找到出牌按钮」的操作 */
-    if (wasSelected && this.onTileDiscard)
+    /* 第一次点击只做选中（抬起 + 选中音）；再点同一张才确认出牌 */
+    if (this.selected === index)
     {
-      this.onTileDiscard(tile, index)
+      this.selected = -1
+
+      this.drawHand()
+
+      if (this.onTileDiscard)
+      {
+        this.onTileDiscard(tile, index)
+      }
+
+      return
+    }
+
+    this.selected = index
+
+    this.drawHand()
+
+    if (this.onTileTap)
+    {
+      this.onTileTap(tile, this.selected, true, '')
     }
   }
 
