@@ -6,3 +6,6 @@ unpackage/
 
 # 生成器中转目录（生效目录为 web/src/static/whmj/gen）
 web/static/
+
+# 原版反编译脚本仅作本地规则比对，不入库
+docs/reference/

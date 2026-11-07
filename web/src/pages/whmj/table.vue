@@ -33,7 +33,7 @@ $glass: rgba(6, 26, 18, 0.92);
 .btnDiscard--off { position: relative; background: rgba(20, 44, 32, 0.9); border: 1px solid rgba(246, 233, 206, 0.28); box-shadow: none; }
 .btnDiscard--off .btnDiscard__text { position: relative; color: rgba(246, 233, 206, 0.5); }
 .btnDiscard--hint { position: relative; animation: discPulse 1.1s ease-in-out infinite; }
-@keyframes discPulse { position: relative; 0%, 100% { box-shadow: 0 0 0 rgba(255, 215, 94, 0); } 50% { box-shadow: 0 0 22px rgba(255, 215, 94, 0.85); } }
+@keyframes discPulse { 0%, 100% { box-shadow: 0 0 0 rgba(255, 215, 94, 0); } 50% { box-shadow: 0 0 22px rgba(255, 215, 94, 0.85); } }
 .mj-mask { position: absolute; left: 0; top: 0; display: flex; align-items: center; justify-content: center; width: 1334px; height: 750px; background: rgba(2, 8, 6, 0.74); }
 .mj-mask--clear { position: absolute; left: 0; top: 0; display: flex; align-items: center; justify-content: center; width: 1334px; height: 750px; background: rgba(2, 8, 6, 0.3); pointer-events: none; }
 .mj-mask--top { position: relative; align-items: flex-start; padding-top: 96px; box-sizing: border-box; }
@@ -444,6 +444,8 @@ export default
   {
     this.roomId = (query && query.roomId) || ''
 
+    socket.setRoom(this.roomId)
+
     audio.init()
 
     try
@@ -644,6 +646,19 @@ export default
 
         this.bindEvents()
 
+        /* 重连或整页刷新回来时先重新占用原座位，否则房间路由会拒绝这条连接 */
+        if (this.roomId)
+        {
+          try
+          {
+            await socket.request('whmj.lobby.joinRoom', { roomId: this.roomId })
+          }
+          catch (e)
+          {
+            console.warn('[whmj] 回到房间失败', e)
+          }
+        }
+
         const snap = await socket.request('whmj.room.sync')
 
         if (snap && snap.seats)
@@ -672,6 +687,19 @@ export default
       {
         this.offs.push(socket.on(event, handler))
       }
+
+      this.offs.push(socket.onLocal('reconnecting', () =>
+      {
+        this.showTip('网络断开，正在重连…')
+      }))
+
+      this.offs.push(socket.onLocal('reconnected', () => this.resync()))
+
+      this.offs.push(socket.onLocal('expired', () =>
+      {
+        this.showTip('登录状态已失效，请重新登录')
+        setTimeout(() => uni.reLaunch({ url: '/pages/whmj/login' }), 1200)
+      }))
 
       on('onRoomState', (d) => this.applyRoomState(d))
 
@@ -803,6 +831,25 @@ export default
       })
     },
 
+    /** 重连成功后按服务端快照恢复牌局 */
+    async resync()
+    {
+      try
+      {
+        const snap = await socket.request('whmj.room.sync')
+
+        if (snap && snap.seats)
+        {
+          this.applySnapshot(snap)
+          this.showTip('已重新连接，牌局已同步')
+        }
+      }
+      catch (err)
+      {
+        console.warn('[whmj] 重连同步失败', err)
+      }
+    },
+
     /** 取消全部订阅 */
     unbindEvents()
     {
@@ -878,6 +925,7 @@ export default
       }
 
       this.remain = d.remain || this.remain
+      this.selectedIndex = -1
 
       this.applySceneMode()
       this.render()
@@ -941,7 +989,11 @@ export default
     {
       if (d.seat === this.mySeat)
       {
-        if (d.type === OP_PENG)
+        if (d.type === OP_CHI)
+        {
+          this.eatFromHand(d.start, d.tile)
+        }
+        else if (d.type === OP_PENG)
         {
           this.removeFromHand(d.tile, 2)
         }
@@ -1044,6 +1096,22 @@ export default
       this.resultSub = `第 ${this.round} 局结束 · 本局 ${mine >= 0 ? '+' : ''}${mine} 分 · ${this.round >= this.maxRound ? '整场结束' : '4 秒后自动开始下一局'}`
 
       audio.play(mine >= 0 ? 'win' : 'lose')
+    },
+
+    /**
+     * 按顺子吃掉手牌里的两张（被吃的那张来自对家，不在手上）
+     * @param {Number} start 顺子首张
+     * @param {Number} tile 被吃掉的弃牌
+     */
+    eatFromHand(start, tile)
+    {
+      for (let k = 0; k < 3; k++)
+      {
+        if (start + k !== tile)
+        {
+          this.removeFromHand(start + k, 1)
+        }
+      }
     },
 
     /**
@@ -1249,6 +1317,7 @@ export default
         console.warn('[whmj] 离开房间失败', err)
       }
 
+      socket.setRoom('')
       this.backLobby()
     },
 

@@ -326,12 +326,21 @@ func (r *Room) onDiscard(session *cproto.Session, req *DiscardReq) {
 		return
 	}
 
-	if seat := r.seatIndex(session.Uid); seat >= 0 {
-		r.game.Discard(seat, req.Tile)
-		r.flush()
-		r.schedule()
+	seat := r.seatIndex(session.Uid)
+	if seat < 0 {
+		return
 	}
 
+	// 打不出去说明客户端手牌已经和服务端不一致（例如吃牌后本地没同步），
+	// 直接把权威快照推回去，避免玩家点了半天没反应。
+	if !r.game.Discard(seat, req.Tile) {
+		r.reject(session, seat, "这张牌现在打不出去，已同步牌局")
+
+		return
+	}
+
+	r.flush()
+	r.schedule()
 	r.ack(session)
 }
 
@@ -345,10 +354,32 @@ func (r *Room) onAction(session *cproto.Session, req *ActionReq) {
 		return
 	}
 
-	r.game.Action(seat, req.Type, req.Tile)
+	done := r.game.Action(seat, req.Type, req.Tile)
+
 	r.flush()
 	r.schedule()
+
+	if !done {
+		r.reject(session, seat, "这一步没有生效，已同步牌局")
+
+		return
+	}
+
+	// 吃牌会吃掉手上两张牌，客户端只按事件删牌容易漏，这里补一份权威快照。
+	if req.Type == game.OpChi {
+		r.pushSnapshot(seat)
+	}
+
 	r.ack(session)
+}
+
+// reject 回应一次无效操作，并把该座位的权威牌局推回客户端。
+func (r *Room) reject(session *cproto.Session, seat int, msg string) {
+	if agent, found := pomelo.GetAgentWithSID(session.Sid); found {
+		agent.Response(session, map[string]any{"code": 409, "msg": msg})
+	}
+
+	r.pushSnapshot(seat)
 }
 
 func (r *Room) onSync(session *cproto.Session, _ *Empty) {

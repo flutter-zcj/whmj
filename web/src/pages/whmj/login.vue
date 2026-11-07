@@ -9,7 +9,7 @@ $danger: #FF7A6B;
 .page__veil { position: absolute; left: 0; top: 0; width: 100%; height: 100%; background: linear-gradient(90deg, rgba(8, 34, 52, 0.42) 0%, rgba(8, 34, 52, 0.08) 46%, rgba(8, 34, 52, 0.5) 100%); }
 .brand { position: relative; display: flex; flex-direction: column; align-items: center; z-index: 2; }
 .brand__art { position: relative; width: 420rpx; height: 172rpx; filter: drop-shadow(0 6rpx 20rpx rgba(255, 160, 60, 0.45)); animation: float 3.2s ease-in-out infinite; }
-@keyframes float { position: relative; 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10rpx); } }
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10rpx); } }
 .brand__row { position: relative; display: flex; flex-direction: row; align-items: center; margin-top: 26rpx; }
 .brand__mark { position: relative; display: flex; align-items: center; justify-content: center; width: 110rpx; height: 110rpx; background: linear-gradient(150deg, #48C083 0%, #12965E 100%); border: 4rpx solid rgba(255, 255, 255, 0.9); border-radius: 30rpx; box-shadow: 0 14rpx 32rpx rgba(0, 0, 0, 0.5), inset 0 4rpx 0 rgba(255, 255, 255, 0.35); }
 .brand__tile { position: relative; font-size: 56rpx; font-weight: 700; color: #FFF8E2; text-shadow: 0 4rpx 10rpx rgba(0, 60, 36, 0.45); }

@@ -23,7 +23,10 @@ whmj/
 │   ├── internal/store/         账号与战绩持久化（PG + Redis，可降级内存）
 │   └── config/whmj.json        cherry profile（节点分组与监听地址）
 ├── deploy/                     nginx 片段、systemd 单元、环境变量样例
-└── docs/游戏资源分析.md         美术/图片/音乐/UI 规格与实现映射（唯一视觉依据）
+├── docs/游戏资源分析.md         美术/图片/音乐/UI 规格与实现映射（唯一视觉依据）
+├── docs/原版APK逆向分析.md      craft-anything 逆向记录：密钥、资源包、原版番型表
+├── docs/reference/wuhanmj-lua/  原版 WuHanMJ 24 个 Lua 脚本（仅供规则比对）
+└── tools/xxtea.c               Cocos XXTEA 解密工具（签名 + 密钥见逆向分析文档）
 ```
 
 ## 2. 规则实现
@@ -112,9 +115,13 @@ cd server && CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o whmj .
 | 牌桌 HUD 不遮挡手牌（提示条 `top:552`，手牌顶 `646`） | 通过 |
 | Vue 编码规范（`tools/check_std.py`） | index/table/login 三个页面 0 不合规 |
 | Go 规范（`gofmt -l` 无输出、`go vet`、`go test`） | 通过 |
+| 断线自动恢复：拔掉网关后 0.7s 整页重开、自动回房并同步牌局 | 通过（本地断代理复现） |
+| 吃牌后能正常出牌（服务端整组校验 + 快照回推） | 通过（`TestChiThenDiscard` / `TestChiWithoutTiles`） |
+| 旧连接关闭不误踢重连后的玩家 | 通过（`main.go` 按 sid 比对） |
 
 ## 7. 已知边界
 
 - 支付为模拟，未接入任何支付 SDK；登录为账号体系，不含微信/QQ 登录。
 - 四川麻将、拖拉机、斗地主、卡五星、晃晃、跑得快六个入口为占位（点击提示「即将上线」）。
-- 美术为按 Style Guide 重绘，非原包素材；原包 `res.dat` 加密，无法也无意提取其像素与音频。
+- 美术为按 Style Guide 重绘，非原包素材。原包 `res.dat` 的加密方式已还原（XXTEA，密钥 `bzxgmj`，见 `docs/原版APK逆向分析.md`），但本项目仍使用自绘资源，不复制原包像素与音频。
+- 牌张为 112 张（万筒条 + 红中）；原版含风牌与发/白（136 张）并支持 4 种房型与「开口番/口口番」，差异清单见逆向分析文档第 3 节。

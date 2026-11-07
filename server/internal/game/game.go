@@ -408,15 +408,15 @@ func (g *Game) RemainCount() int {
 	return g.remain()
 }
 
-// Discard 出牌。
-func (g *Game) Discard(seat, tile int) {
+// Discard 出牌。返回 false 表示这张牌当前打不出去（不是本人回合、已过牌或手上没有）。
+func (g *Game) Discard(seat, tile int) bool {
 	if g.Phase != PhasePlay || g.Turn != seat || !g.needDiscard {
-		return
+		return false
 	}
 
 	p := g.Players[seat]
 	if p.Finished || p.Hand[tile] <= 0 {
-		return
+		return false
 	}
 
 	p.Hand.Remove(tile)
@@ -435,6 +435,8 @@ func (g *Game) Discard(seat, tile int) {
 	}{Seat: seat, Tile: tile})
 
 	g.askOthers(seat, tile)
+
+	return true
 }
 
 // askOthers 计算其他座位对这张弃牌的响应选项，吃只有下家可以。
@@ -496,27 +498,25 @@ func (g *Game) askOthers(fromSeat, tile int) {
 	}
 }
 
-// Action 处理玩家操作：碰、杠、胡、过。
-func (g *Game) Action(seat int, opType string, tile int) {
+// Action 处理玩家操作：碰、杠、胡、过。返回 false 表示这次操作没有被接受。
+func (g *Game) Action(seat int, opType string, tile int) bool {
 	if g.Phase != PhasePlay {
-		return
+		return false
 	}
 
 	p := g.Players[seat]
 	if p.Finished {
-		return
+		return false
 	}
 
 	// 自己的回合内：自摸、暗杠、补杠
 	if seat == g.Turn && g.needDiscard {
-		g.selfAction(seat, opType, tile)
-
-		return
+		return g.selfAction(seat, opType, tile)
 	}
 
 	opts, waiting := g.pending[seat]
 	if !waiting {
-		return
+		return false
 	}
 
 	// 「过」不是候选项之一，而是对任意候选项的放弃，因此单独放行。
@@ -533,7 +533,7 @@ func (g *Game) Action(seat int, opType string, tile int) {
 	}
 
 	if !valid {
-		return
+		return false
 	}
 
 	g.answered[seat] = true
@@ -549,9 +549,11 @@ func (g *Game) Action(seat int, opType string, tile int) {
 	}
 
 	g.tryResolve()
+
+	return true
 }
 
-func (g *Game) selfAction(seat int, opType string, tile int) {
+func (g *Game) selfAction(seat int, opType string, tile int) bool {
 	p := g.Players[seat]
 	opts := g.pending[seat]
 	valid := false
@@ -565,7 +567,7 @@ func (g *Game) selfAction(seat int, opType string, tile int) {
 	}
 
 	if !valid {
-		return
+		return false
 	}
 
 	switch opType {
@@ -573,7 +575,7 @@ func (g *Game) selfAction(seat int, opType string, tile int) {
 		g.winHu(seat, seat, true, g.drawn, true)
 	case OpAnGang:
 		if p.Hand[tile] < rule.CopiesPerTile {
-			return
+			return false
 		}
 
 		for i := 0; i < rule.CopiesPerTile; i++ {
@@ -602,7 +604,7 @@ func (g *Game) selfAction(seat int, opType string, tile int) {
 		}
 
 		if idx < 0 || p.Hand[tile] < 1 {
-			return
+			return false
 		}
 
 		p.Hand.Remove(tile)
@@ -616,19 +618,19 @@ func (g *Game) selfAction(seat int, opType string, tile int) {
 
 		// 补杠可被抢杠胡
 		if g.askRobGang(seat, tile) {
-			return
+			return true
 		}
 
 		g.settleGang(seat, tile, rule.MeldBuGang)
 		g.gangDraw(seat)
 	case OpGang:
 		if p.Hand[tile] <= 0 {
-			return
+			return false
 		}
 
 		label := g.gangLabel(tile)
 		if label == "杠" {
-			return
+			return false
 		}
 
 		p.Hand.Remove(tile)
@@ -644,6 +646,8 @@ func (g *Game) selfAction(seat int, opType string, tile int) {
 		g.settleSpecialGang(seat, label)
 		g.gangDraw(seat)
 	}
+
+	return true
 }
 
 // tryResolve 在所有等待者都响应后按优先级裁决。
@@ -717,27 +721,38 @@ func (g *Game) tryResolve() {
 		return
 	}
 
-	if chiSeat >= 0 {
-		g.doChi(chiSeat, chiStart)
-
+	if chiSeat >= 0 && g.doChi(chiSeat, chiStart) {
 		return
 	}
 
 	g.nextTurn(g.lastSeat)
 }
 
-// doChi 执行吃：移除顺子中缺的两张牌，亮出一刻面子。
-func (g *Game) doChi(seat, start int) {
+// doChi 执行吃：移除顺子中缺的两张牌，亮出一组面子。
+//
+// 先整组校验再动手，避免拆到一半发现缺张而把手牌改坏（吃之后打不出牌的老问题）。
+func (g *Game) doChi(seat, start int) bool {
 	p := g.Players[seat]
+	need := make([]int, 0, 3)
 
 	for k := 0; k < 3; k++ {
 		if start+k == g.lastTile {
 			continue
 		}
 
-		if !p.Hand.Remove(start + k) {
-			return
+		if start+k < rule.TileMin || start+k > rule.TileKinds || p.Hand[start+k] <= 0 {
+			return false
 		}
+
+		need = append(need, start+k)
+	}
+
+	if len(need) != 2 {
+		return false
+	}
+
+	for _, t := range need {
+		p.Hand.Remove(t)
 	}
 
 	p.Melds = append(p.Melds, rule.Meld{Type: rule.MeldChi, Tile: g.lastTile, Start: start, From: g.lastSeat})
@@ -753,7 +768,10 @@ func (g *Game) doChi(seat, start int) {
 
 	g.Turn = seat
 	g.drawn = 0
+	g.gangFlag = false
 	g.askDiscard(seat)
+
+	return true
 }
 
 func (g *Game) doPeng(seat int) {

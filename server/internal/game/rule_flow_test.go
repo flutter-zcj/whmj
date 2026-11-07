@@ -75,6 +75,66 @@ func TestChiFlow(t *testing.T) {
 	}
 }
 
+// TestChiThenDiscard 校验吃牌之后还能正常打出剩下的牌。
+//
+// 客户端点「吃」之后服务器会吃掉手上两张，若这两张算错，玩家就会出现
+// 「选了牌却打不出去」的现象，这里用手上留着一张被吃点数的情况盯住它。
+func TestChiThenDiscard(t *testing.T) {
+	g := newFlowGame(t)
+	p := g.Players[1]
+
+	p.Hand.Add(2)
+	p.Hand.Add(3)
+	p.Hand.Add(4)
+
+	g.Players[0].Hand.Add(3)
+
+	if !g.Discard(0, 3) {
+		t.Fatal("庄家应当能打出三万")
+	}
+
+	if !g.Action(1, OpChi, 2) {
+		t.Fatal("下家应当能吃 2-3-4")
+	}
+
+	if p.Hand[3] != 1 {
+		t.Fatalf("手里那张三万应该留着，实际 %d 张", p.Hand[3])
+	}
+
+	if p.Hand.Total() != 1 {
+		t.Fatalf("吃后手牌应只剩一张，实际 %d", p.Hand.Total())
+	}
+
+	if g.Turn != 1 || !g.needDiscard {
+		t.Fatalf("吃后应轮到下家出牌，turn=%d needDiscard=%v", g.Turn, g.needDiscard)
+	}
+
+	if !g.Discard(1, 3) {
+		t.Fatal("吃牌之后应当能打出剩下的牌")
+	}
+
+	if p.Discards[len(p.Discards)-1] != 3 {
+		t.Fatalf("弃牌区应记下这张三万，实际 %+v", p.Discards)
+	}
+}
+
+// TestChiWithoutTiles 校验缺张的吃不会把手牌改坏。
+func TestChiWithoutTiles(t *testing.T) {
+	g := newFlowGame(t)
+	p := g.Players[1]
+
+	p.Hand.Add(2)
+	before := p.Hand.Total()
+
+	if g.doChi(1, 1) {
+		t.Fatal("缺一万与三万时不该吃成功")
+	}
+
+	if p.Hand.Total() != before || len(p.Melds) != 0 {
+		t.Fatalf("失败的吃不能动到手牌，手牌 %d，面子 %+v", p.Hand.Total(), p.Melds)
+	}
+}
+
 // TestNoOpenNoHu 校验未开口不能胡牌。
 func TestNoOpenNoHu(t *testing.T) {
 	g := newFlowGame(t)

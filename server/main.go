@@ -48,6 +48,12 @@ func main() {
 				return
 			}
 
+			// 同一账号可能已经在新的连接上重连成功（手机切网、锁屏唤醒），
+			// 此时旧连接的关闭不能把玩家踢下线，否则重连后会一直提示未连接。
+			if sid, found := pomelo.GetSID(int64(a.UID())); found && sid != a.SID() {
+				return
+			}
+
 			parser.Call(".lobby", "offline", &server.UIDReq{UID: int64(a.UID())})
 		})
 	})
