@@ -54,7 +54,6 @@ class MahjongSocket
     this.roomId = ''
     this.opening = null
     this.retryTimer = null
-    this.retryCount = 0
     this.closedByUser = false
     this.wasDown = false
     this.bound = false
@@ -191,8 +190,6 @@ class MahjongSocket
    */
   async afterOpen(res)
   {
-    this.retryCount = 0
-
     if (this.retryTimer)
     {
       clearTimeout(this.retryTimer)
@@ -292,29 +289,24 @@ class MahjongSocket
     }, RELOAD_DELAY)
   }
 
-  /**
-   * 是否允许整页刷新恢复连接，20 秒内只刷新一次，避免死循环
-   * @returns {Boolean} 允许刷新
-   */
-  canReload()
-  {
-    if (typeof window === 'undefined' || !window.location || !window.sessionStorage)
-    {
-      return false
-    }
-
-    const last = Number(window.sessionStorage.getItem(RELOAD_KEY) || 0)
-
-    return Date.now() - last > 5000
-  }
-
-  /** 记下刷新时间并重载页面 */
+  /** 记下刷新时间并重载页面，5 秒内只刷一次，避免死循环 */
   reloadPage()
   {
+    if (typeof window === 'undefined' || !window.location)
+    {
+      return
+    }
+
     try
     {
+      const last = Number(window.sessionStorage.getItem(RELOAD_KEY) || 0)
+
+      if (Date.now() - last < 5000)
+      {
+        return
+      }
+
       window.sessionStorage.setItem(RELOAD_KEY, String(Date.now()))
-      this.emitLocal('reloading', {})
       window.location.reload()
     }
     catch (e)
@@ -544,7 +536,6 @@ class MahjongSocket
       this.retryTimer = null
     }
 
-    this.retryCount = 0
     this.wasDown = false
 
     if (pomelo)
