@@ -42,7 +42,7 @@ function meldTileCount(meld)
 }
 
 /** 我的手牌：放大后单张宽高、间距、底边对齐位置、选中上移量 */
-const HAND = { w: 84, h: 118, gap: 2, bottom: 740, lift: 28, minW: 54 }
+const HAND = { w: 100, h: 140, gap: 2, bottom: 742, lift: 26, minW: 64 }
 
 /** 对家牌墙（顶部横排，牌面竖放） */
 const BACK_TOP = { x: 459, y: 84, pitch: 35, w: 30, h: 44 }
@@ -56,14 +56,14 @@ const BACK_SIDE = { rightX: 1278, leftX: 30, y: 214, pitch: 32, w: 28, h: 26 }
  * cols × rows 即该家最多同时显示的弃牌数
  */
 const POND = [
-  { axis: 'h', x: 398, y: 466, cols: 13, rows: 2, colStep: 40, rowStep: 50, rot: 0 },
-  { axis: 'v', x: 958, y: 290, cols: 6, rows: 3, colStep: 45, rowStep: 40, rot: 90 },
-  { axis: 'h', x: 398, y: 168, cols: 13, rows: 2, colStep: 40, rowStep: 50, rot: 0 },
-  { axis: 'v', x: 250, y: 290, cols: 6, rows: 3, colStep: 43, rowStep: 40, rot: 90 }
+  { axis: 'h', x: 398, y: 466, cols: 11, rows: 2, colStep: 48, rowStep: 60, rot: 0 },
+  { axis: 'v', x: 950, y: 282, cols: 6, rows: 3, colStep: 50, rowStep: 40, rot: 90 },
+  { axis: 'h', x: 398, y: 150, cols: 11, rows: 2, colStep: 48, rowStep: 60, rot: 0 },
+  { axis: 'v', x: 250, y: 282, cols: 6, rows: 3, colStep: 48, rowStep: 40, rot: 90 }
 ]
 
 /** 弃牌尺寸（未旋转时），放大后仍保持四家互不重叠 */
-const POND_TILE = { w: 38, h: 46 }
+const POND_TILE = { w: 46, h: 56 }
 
 /** 副露区：起点、单张显示宽高、是否旋转、是否居中、可用最大宽度 */
 const MELD = [
@@ -532,12 +532,15 @@ export default class TableScene extends Phaser.Scene
           : layout.y + col * layout.colStep + bh / 2
 
         const isLatest = i === list.length - 1 && !!last && last.seat === index
+        const scale = isLatest ? 1.5 : 1
+        const mw = bw * scale
+        const mh = bh * scale
         const img = this.makeTile(tileKey(tile), x, y, POND_TILE.w, POND_TILE.h, rot)
 
         /* 全场最后打出的牌放大并压在最上层，配合橙色指针让对手出牌一眼可见 */
         if (isLatest)
         {
-          img.setDisplaySize(POND_TILE.w * 1.24, POND_TILE.h * 1.24)
+          img.setDisplaySize(POND_TILE.w * scale, POND_TILE.h * scale)
         }
 
         this.layers.pond.add(img)
@@ -547,14 +550,14 @@ export default class TableScene extends Phaser.Scene
           const mark = this.add.graphics()
 
           mark.lineStyle(isLatest ? 3 : 2, isLatest ? 0xFFB020 : 0xFFD75E, isLatest ? 1 : 0.55)
-          mark.strokeRoundedRect(x - bw / 2 - 1, y - bh / 2 - 1, bw + 2, bh + 2, 5)
+          mark.strokeRoundedRect(x - mw / 2 - 1, y - mh / 2 - 1, mw + 2, mh + 2, 5)
           this.layers.pond.add(mark)
 
           if (isLatest)
           {
-            const pin = this.add.image(x, y - bh / 2 - 18, 'xyf_pointer')
+            const pin = this.add.image(x, y - mh / 2 - 20, 'xyf_pointer')
 
-            pin.setDisplaySize(30, 39)
+            pin.setDisplaySize(36, 46)
             this.layers.pond.add(pin)
             this.tweens.add({ targets: pin, y: pin.y - 6, duration: 620, yoyo: true, repeat: -1, ease: 'Sine.InOut' })
           }
@@ -717,9 +720,9 @@ export default class TableScene extends Phaser.Scene
       return
     }
 
-    const startMin = Math.max(170, 14 + this.myMeldWidth + 20)
-    /* 我的座位卡已上移，底部整条留给放大后的手牌 */
-    const rightMax = 1270
+    /* 副露在 y≈560 与手牌错层，最多让出 120px，底部整条尽量留给放大后的手牌 */
+    const startMin = Math.max(60, Math.min(120, 14 + this.myMeldWidth + 20))
+    const rightMax = 1310
     const gap = hand.length >= 14 ? HAND.gap : 4
     const avail = rightMax - startMin
     let tw = Math.min(HAND.w, Math.floor((avail - (hand.length - 1) * gap) / hand.length))

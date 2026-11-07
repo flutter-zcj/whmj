@@ -18,10 +18,7 @@ $glass: rgba(6, 26, 18, 0.92);
 .tb-center { position: absolute; left: 50%; top: 6px; display: flex; flex-direction: row; align-items: center; margin-left: -150px; width: 300px; height: 30px; justify-content: center; }
 .tb-center__text { position: relative; font-size: 18px; color: rgba(246, 233, 206, 0.82); letter-spacing: 1px; }
 .tb-right { position: absolute; right: 14px; top: 8px; display: flex; flex-direction: row; }
-.bar { pointer-events: auto; position: absolute; left: 344px; top: 566px; display: flex; flex-direction: row; align-items: center; width: 794px; height: 52px; }
-.bar__tip { position: relative; display: flex; flex-direction: row; align-items: center; flex: 1; height: 44px; padding: 0 16px; box-sizing: border-box; background: rgba(4, 20, 14, 0.72); border: 1px solid $line; border-radius: 22px; overflow: hidden; }
-.bar__tipText { position: relative; font-size: 18px; line-height: 22px; color: $cream; }
-.bar__tipText--warn { position: relative; color: #FFC46B; }
+.bar { pointer-events: none; position: absolute; left: 988px; top: 548px; display: flex; flex-direction: row; align-items: center; width: 150px; height: 56px; }
 .ops { position: absolute; left: 500px; top: 394px; display: flex; flex-direction: row; align-items: center; justify-content: center; width: 620px; height: 130px; pointer-events: none; }
 .op { position: relative; display: flex; align-items: center; justify-content: center; width: 92px; height: 92px; margin: 0 8px; pointer-events: auto; }
 .op__bg { position: absolute; left: 0; top: 0; width: 92px; height: 92px; }
@@ -33,7 +30,7 @@ $glass: rgba(6, 26, 18, 0.92);
 .op--pass { position: relative; display: flex; align-items: center; justify-content: center; width: 84px; height: 84px; margin: 0 8px; pointer-events: auto; }
 .op--pass .op__bg { position: absolute; left: 0; top: 0; width: 84px; height: 84px; }
 .op--pass .op__flag { position: relative; width: 62px; height: 62px; }
-.btnDiscard { position: relative; display: flex; align-items: center; justify-content: center; width: 150px; height: 56px; margin-left: auto; border-radius: 28px; background: linear-gradient(160deg, #FFE39A 0%, #D9A44C 100%); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45); }
+.btnDiscard { position: relative; display: flex; align-items: center; justify-content: center; width: 150px; height: 56px; margin-left: auto; pointer-events: auto; border-radius: 28px; background: linear-gradient(160deg, #FFE39A 0%, #D9A44C 100%); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45); }
 .btnDiscard__text { position: relative; font-size: 24px; font-weight: 700; color: #2A1C05; letter-spacing: 2px; }
 .btnDiscard--off { position: relative; background: rgba(20, 44, 32, 0.9); border: 1px solid rgba(246, 233, 206, 0.28); box-shadow: none; }
 .btnDiscard--off .btnDiscard__text { position: relative; color: rgba(246, 233, 206, 0.5); }
@@ -86,8 +83,8 @@ $glass: rgba(6, 26, 18, 0.92);
 .roundinfo__item--open { position: relative; height: 30px; width: 146px; padding: 0 12px; border-radius: 15px; }
 .roundinfo__hint { position: relative; font-size: 14px; color: $gold; }
 .roundinfo__item--ok .roundinfo__hint { position: relative; color: #8FE0A8; }
-.toast { pointer-events: none; position: absolute; left: 50%; top: 546px; display: flex; align-items: center; justify-content: center; margin-left: -320px; width: 640px; height: 46px; background: rgba(4, 20, 14, 0.94); border: 1px solid rgba(255, 217, 138, 0.5); border-radius: 14px; }
-.toast__text { position: relative; font-size: 18px; color: $gold; }
+.toast { pointer-events: none; position: absolute; left: 50%; top: 62px; display: flex; align-items: center; justify-content: center; margin-left: -230px; width: 460px; height: 40px; background: rgba(4, 20, 14, 0.88); border: 1px solid rgba(255, 217, 138, 0.5); border-radius: 12px; }
+.toast__text { position: relative; font-size: 16px; color: $gold; }
 .fx { position: absolute; left: 0; top: 250px; display: flex; align-items: center; justify-content: center; width: 1334px; }
 .fx__text { position: relative; font-size: 150px; font-weight: 700; color: #FFE9B4; letter-spacing: 12px; text-shadow: 0 0 30px rgba(255, 196, 84, 0.9), 0 8px 0 rgba(140, 82, 12, 0.9), 0 18px 40px rgba(0, 0, 0, 0.6); animation: fxPop 0.9s ease-out both; }
 @keyframes fxPop { 0% { transform: scale(0.4) rotate(-8deg); opacity: 0; } 35% { transform: scale(1.16) rotate(0deg); opacity: 1; } 70% { transform: scale(1) rotate(0deg); opacity: 1; } 100% { transform: scale(1.05); opacity: 0; } }
@@ -159,9 +156,6 @@ $glass: rgba(6, 26, 18, 0.92);
       </view>
 
       <view class="bar" v-if="!resultVisible && !guideVisible">
-        <view class="bar__tip">
-          <text :class="tipWarn ? 'bar__tipText bar__tipText--warn' : 'bar__tipText'">{{ statusText }}</text>
-        </view>
         <view
           v-if="phase === 'play' && discardVisible"
           :class="discardClass"
@@ -940,7 +934,6 @@ export default
         }
 
         audio.play('discard')
-        audio.playTile(d.tile)
         this.applySceneMode()
         this.render()
       })

@@ -2,7 +2,7 @@
  * 麻将音效管理
  * 统一管理背景音乐与操作音效，音效按 key 建小对象池以支持快速连续播放
  */
-import { ASSET_BASE, tileName } from './const.js'
+import { ASSET_BASE } from './const.js'
 
 /** 每个音效的并发实例数 */
 const VOICE_COUNT = 3
@@ -41,8 +41,6 @@ class MahjongAudio
     this.pool = {}
     this.cursor = {}
     this.bgm = null
-    this.voice = null
-    this.voiceTimer = null
     this.enabled = true
     this.bgmEnabled = true
   }
@@ -119,74 +117,6 @@ class MahjongAudio
   }
 
   /**
-   * 播报刚打出的牌名，与拍牌音效错开 140ms 避免混音
-   * @param {Number} tile 牌编码 1..28
-   */
-  playTile(tile)
-  {
-    if (!this.enabled || !tile || tile < 1 || tile > 28)
-    {
-      return
-    }
-
-    if (this.voiceTimer)
-    {
-      clearTimeout(this.voiceTimer)
-    }
-
-    this.voiceTimer = setTimeout(() =>
-    {
-      if (!this.enabled)
-      {
-        return
-      }
-
-      if (!this.voice)
-      {
-        this.voice = uni.createInnerAudioContext()
-        this.voice.volume = 1
-      }
-
-      try
-      {
-        this.voice.stop()
-        this.voice.src = `${ASSET_BASE}/audio/voice/t${tile}.mp3`
-        this.voice.play()
-      }
-      catch (e)
-      {
-        this.speakTile(tile)
-      }
-    }, 140)
-  }
-
-  /**
-   * 语音文件不可用时用系统中文 TTS 兜底
-   * @param {Number} tile 牌编码 1..28
-   */
-  speakTile(tile)
-  {
-    if (typeof window === 'undefined' || !window.speechSynthesis)
-    {
-      return
-    }
-
-    try
-    {
-      const utter = new window.SpeechSynthesisUtterance(tileName(tile))
-
-      utter.lang = 'zh-CN'
-      utter.rate = 1.1
-      window.speechSynthesis.cancel()
-      window.speechSynthesis.speak(utter)
-    }
-    catch (e)
-    {
-      console.warn('[whmj] 报牌语音失败', tile, e)
-    }
-  }
-
-  /**
    * 开始循环播放背景音乐
    */
   playBgm()
@@ -233,24 +163,6 @@ class MahjongAudio
 
     if (!this.enabled)
     {
-      if (this.voiceTimer)
-      {
-        clearTimeout(this.voiceTimer)
-        this.voiceTimer = null
-      }
-
-      if (this.voice)
-      {
-        try
-        {
-          this.voice.stop()
-        }
-        catch (e)
-        {
-          console.warn('[whmj] 停止报牌失败', e)
-        }
-      }
-
       this.pauseBgm()
     }
     else
@@ -280,26 +192,6 @@ class MahjongAudio
   /** 释放全部音频资源 */
   destroy()
   {
-    if (this.voiceTimer)
-    {
-      clearTimeout(this.voiceTimer)
-      this.voiceTimer = null
-    }
-
-    if (this.voice)
-    {
-      try
-      {
-        this.voice.destroy()
-      }
-      catch (e)
-      {
-        console.warn('[whmj] 释放报牌语音失败', e)
-      }
-
-      this.voice = null
-    }
-
     Object.keys(this.pool).forEach((key) =>
     {
       this.pool[key].forEach((ctx) =>
