@@ -66,7 +66,7 @@ $line: rgba(255, 214, 140, 0.45);
 .dock__ico { position: relative; width: 34px; height: 34px; }
 .dock__text { position: relative; margin-top: 4px; font-size: 15px; color: rgba(255, 246, 226, 0.86); }
 .dock__item--on .dock__text { position: relative; color: $gold-light; font-weight: 700; }
-.sheet { position: absolute; left: 0; top: 0; display: flex; align-items: center; justify-content: center; width: 1334px; height: 750px; background: rgba(14, 10, 6, 0.66); }
+.sheet { position: absolute; z-index: 20; left: 0; top: 0; display: flex; align-items: center; justify-content: center; width: 1334px; height: 750px; background: rgba(14, 10, 6, 0.66); }
 .sheet__panel { position: relative; display: flex; flex-direction: column; align-items: center; width: 980px; height: 620px; padding-top: 92px; box-sizing: border-box; background: linear-gradient(180deg, rgba(58, 35, 18, 0.98) 0%, rgba(34, 20, 10, 0.98) 100%); border: 3px solid $gold; border-radius: 20px; box-shadow: 0 16px 46px rgba(0, 0, 0, 0.5); }
 .sheet__title { position: absolute; left: 50%; top: -34px; margin-left: -140px; width: 280px; height: 68px; line-height: 68px; background: linear-gradient(180deg, #FFE29A 0%, #C48A2E 100%); border: 3px solid #FFF3D2; border-radius: 34px; font-size: 28px; font-weight: 700; letter-spacing: 6px; color: #4A2C08; text-align: center; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.38); }
 .sheet__close { position: absolute; right: 14px; top: 14px; display: flex; align-items: center; justify-content: center; width: 46px; height: 46px; background: linear-gradient(160deg, #FF8B66 0%, #B4342A 100%); border: 2px solid #FFE9C4; border-radius: 23px; font-size: 26px; font-weight: 700; line-height: 42px; color: #FFFFFF; text-align: center; }
@@ -85,7 +85,7 @@ $line: rgba(255, 214, 140, 0.45);
 .pack__price { position: relative; display: flex; flex-direction: row; align-items: center; justify-content: center; width: 100%; height: 42px; background: rgba(120, 74, 30, 0.16); }
 .pack__gem { position: relative; width: 22px; height: 22px; }
 .pack__num { position: relative; margin-left: 4px; font-size: 20px; font-weight: 700; color: #8A4B12; }
-.dlg { position: absolute; left: 0; top: 0; display: flex; align-items: center; justify-content: center; width: 1334px; height: 750px; background: rgba(14, 10, 6, 0.66); }
+.dlg { position: absolute; z-index: 30; left: 0; top: 0; display: flex; align-items: center; justify-content: center; width: 1334px; height: 750px; background: rgba(14, 10, 6, 0.66); }
 .dlg__panel { position: relative; display: flex; flex-direction: column; width: 780px; padding: 0 0 26px; box-sizing: border-box; background: linear-gradient(180deg, rgba(255, 250, 238, 0.98) 0%, rgba(238, 224, 200, 0.98) 100%); border: 3px solid $gold; border-radius: 18px; box-shadow: 0 16px 46px rgba(0, 0, 0, 0.45); }
 .dlg__head { position: relative; display: flex; align-items: center; justify-content: center; width: 100%; height: 64px; background: linear-gradient(180deg, #7A4A20 0%, #4A2C12 100%); border-radius: 14px 14px 0 0; }
 .dlg__title { position: relative; font-size: 25px; font-weight: 700; letter-spacing: 3px; color: $gold-light; }
@@ -115,7 +115,7 @@ $line: rgba(255, 214, 140, 0.45);
 .privacy__btn { position: relative; display: flex; align-items: center; justify-content: center; width: 170px; height: 56px; margin: 0 24px; border-radius: 28px; font-size: 21px; font-weight: 700; }
 .privacy__btn--no { position: relative; background: linear-gradient(160deg, #D8D2C4 0%, #A9A192 100%); color: #453417; }
 .privacy__btn--yes { position: relative; background: linear-gradient(180deg, #FFE29A 0%, #C48A2E 100%); border: 2px solid #FFF3D2; color: #4A2C08; }
-.toast { position: absolute; left: 50%; top: 420px; margin-left: -190px; display: flex; align-items: center; justify-content: center; width: 380px; height: 58px; background: rgba(28, 18, 10, 0.9); border: 1px solid $line; border-radius: 29px; font-size: 18px; color: $cream; }
+.toast { position: absolute; z-index: 60; left: 50%; top: 420px; margin-left: -190px; display: flex; align-items: center; justify-content: center; width: 380px; height: 58px; background: rgba(28, 18, 10, 0.9); border: 1px solid $line; border-radius: 29px; font-size: 18px; color: $cream; }
 </style>
 
 <template>
