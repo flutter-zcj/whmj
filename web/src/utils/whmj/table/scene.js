@@ -41,14 +41,14 @@ function meldTileCount(meld)
   return 4
 }
 
-/** 我的手牌：放大后单张宽高、间距、底边对齐位置、选中上移量 */
-const HAND = { w: 100, h: 140, gap: 2, bottom: 742, lift: 26, minW: 64 }
+/** 我的手牌：放大后单张宽高、间距（负值=轻微叠放，做到牌间不留缝）、底边对齐位置、选中上移量 */
+const HAND = { w: 112, h: 162, gap: -6, bottom: 744, lift: 24, minW: 72 }
 
 /** 对家牌墙（顶部横排，牌面竖放） */
 const BACK_TOP = { x: 459, y: 84, pitch: 35, w: 30, h: 44 }
 
 /** 左右两家牌墙（沿边竖排，牌旋转 90 度，显示包围盒 26×28） */
-const BACK_SIDE = { rightX: 1278, leftX: 30, y: 214, pitch: 32, w: 28, h: 26 }
+const BACK_SIDE = { rightX: 1278, leftX: 30, y: 214, pitch: 28, w: 28, h: 26 }
 
 /**
  * 弃牌区布局
@@ -56,21 +56,21 @@ const BACK_SIDE = { rightX: 1278, leftX: 30, y: 214, pitch: 32, w: 28, h: 26 }
  * cols × rows 即该家最多同时显示的弃牌数
  */
 const POND = [
-  { axis: 'h', x: 398, y: 466, cols: 11, rows: 2, colStep: 48, rowStep: 60, rot: 0 },
-  { axis: 'v', x: 950, y: 282, cols: 6, rows: 3, colStep: 50, rowStep: 40, rot: 90 },
-  { axis: 'h', x: 398, y: 150, cols: 11, rows: 2, colStep: 48, rowStep: 60, rot: 0 },
-  { axis: 'v', x: 250, y: 282, cols: 6, rows: 3, colStep: 48, rowStep: 40, rot: 90 }
+  { axis: 'h', x: 398, y: 466, cols: 11, rows: 2, colStep: 44, rowStep: 54, rot: 0 },
+  { axis: 'v', x: 950, y: 282, cols: 6, rows: 3, colStep: 46, rowStep: 40, rot: 90 },
+  { axis: 'h', x: 398, y: 150, cols: 11, rows: 2, colStep: 44, rowStep: 54, rot: 0 },
+  { axis: 'v', x: 250, y: 282, cols: 6, rows: 3, colStep: 46, rowStep: 40, rot: 90 }
 ]
 
 /** 弃牌尺寸（未旋转时），放大后仍保持四家互不重叠 */
-const POND_TILE = { w: 46, h: 56 }
+const POND_TILE = { w: 50, h: 62 }
 
 /** 副露区：起点、单张显示宽高、是否旋转、是否居中、可用最大宽度 */
 const MELD = [
-  { x: 14, y: 560, w: 26, h: 38, rot: 0, center: false, maxW: 320 },
-  { x: 928, y: 236, w: 26, h: 34, rot: 90, center: false, maxW: 144 },
-  { x: 0, y: 112, w: 30, h: 44, rot: 0, center: true, maxW: 470 },
-  { x: 262, y: 236, w: 26, h: 34, rot: 90, center: false, maxW: 144 }
+  { x: 14, y: 536, w: 34, h: 48, rot: 0, center: false, maxW: 340 },
+  { x: 928, y: 236, w: 30, h: 40, rot: 90, center: false, maxW: 150 },
+  { x: 0, y: 112, w: 34, h: 48, rot: 0, center: true, maxW: 480 },
+  { x: 262, y: 236, w: 30, h: 40, rot: 90, center: false, maxW: 150 }
 ]
 
 /** 四家信息面板：0 我的座位卡上移让出整条底部给放大后的手牌、1 右中、2 对家左上、3 左中 */
@@ -356,6 +356,31 @@ export default class TableScene extends Phaser.Scene
       return
     }
 
+    /* 已移除「出牌」按钮：轮到自己时点一张手牌就直接打出，不再需要二次确认 */
+    if (this.selectMode === 'single')
+    {
+      const allow = this.selectableNow()
+
+      if (!allow.ok)
+      {
+        if (this.onToast)
+        {
+          this.onToast(allow.reason)
+        }
+
+        return
+      }
+
+      this.selected = -1
+
+      if (this.onTileDiscard)
+      {
+        this.onTileDiscard(hand[hit], hit)
+      }
+
+      return
+    }
+
     this.selectTile(hit, hand[hit])
   }
 
@@ -464,7 +489,7 @@ export default class TableScene extends Phaser.Scene
       }
 
       const view = this.viewOf(index)
-      const count = Math.min(seat.tileCount, 14)
+      const count = Math.min(seat.tileCount, 12)
 
       for (let i = 0; i < count; i++)
       {
@@ -532,7 +557,8 @@ export default class TableScene extends Phaser.Scene
           : layout.y + col * layout.colStep + bh / 2
 
         const isLatest = i === list.length - 1 && !!last && last.seat === index
-        const scale = isLatest ? 1.5 : 1
+        /* 别人刚打出的牌在对应方位放大到约 2 倍，一眼能看到出了什么 */
+        const scale = isLatest ? 2 : 1
         const mw = bw * scale
         const mh = bh * scale
         const img = this.makeTile(tileKey(tile), x, y, POND_TILE.w, POND_TILE.h, rot)
@@ -557,7 +583,7 @@ export default class TableScene extends Phaser.Scene
           {
             const pin = this.add.image(x, y - mh / 2 - 20, 'xyf_pointer')
 
-            pin.setDisplaySize(36, 46)
+            pin.setDisplaySize(44, 56)
             this.layers.pond.add(pin)
             this.tweens.add({ targets: pin, y: pin.y - 6, duration: 620, yoyo: true, repeat: -1, ease: 'Sine.InOut' })
           }
@@ -720,10 +746,10 @@ export default class TableScene extends Phaser.Scene
       return
     }
 
-    /* 副露在 y≈560 与手牌错层，最多让出 120px，底部整条尽量留给放大后的手牌 */
-    const startMin = Math.max(60, Math.min(120, 14 + this.myMeldWidth + 20))
-    const rightMax = 1310
-    const gap = hand.length >= 14 ? HAND.gap : 4
+    /* 副露在 y≈536 与手牌错层，最多让出 90px，底部整条尽量留给放大后的手牌 */
+    const startMin = Math.max(24, Math.min(90, 14 + this.myMeldWidth + 20))
+    const rightMax = 1324
+    const gap = HAND.gap
     const avail = rightMax - startMin
     let tw = Math.min(HAND.w, Math.floor((avail - (hand.length - 1) * gap) / hand.length))
 
@@ -735,15 +761,49 @@ export default class TableScene extends Phaser.Scene
     const baseY = HAND.bottom - th / 2
     const mode = this.selectMode || 'none'
 
+    const laiZi = this.state.laiZi || 0
+
     hand.forEach((tile, i) =>
     {
       const picked = mode === 'multi' ? this.picked.includes(i) : this.selected === i
       const x = startX + i * (tw + gap) + tw / 2
       const y = baseY - (picked ? HAND.lift : 0)
+      const isLai = !!laiZi && tile === laiZi
+
+      /* 赖子牌先铺一层金框底，牌面压在上面保持清晰 */
+      if (isLai)
+      {
+        const halo = this.add.graphics()
+
+        halo.fillStyle(0xE8A93C, 0.5)
+        halo.fillRoundedRect(x - tw / 2 - 4, y - th / 2 - 4, tw + 8, th + 8, 8)
+        halo.lineStyle(3, 0xFFD75E, 1)
+        halo.strokeRoundedRect(x - tw / 2 - 4, y - th / 2 - 4, tw + 8, th + 8, 8)
+        this.layers.hand.add(halo)
+      }
 
       const img = this.makeTile(tileKey(tile), x, y, tw, th)
 
       this.layers.hand.add(img)
+
+      /* 金色「赖」角标贴在牌左上角，与 HUD 的赖子图一致 */
+      if (isLai)
+      {
+        const badge = this.add.graphics()
+
+        badge.fillStyle(0xE8A93C, 1)
+        badge.fillRoundedRect(x - tw / 2 - 8, y - th / 2 - 12, 28, 24, 7)
+        badge.lineStyle(1.5, 0xFFF3D2, 1)
+        badge.strokeRoundedRect(x - tw / 2 - 8, y - th / 2 - 12, 28, 24, 7)
+        this.layers.hand.add(badge)
+
+        const label = this.add.text(x - tw / 2 + 6, y - th / 2 - 11, '赖',
+        {
+          fontFamily: FONT, fontSize: '16px', fontStyle: 'bold', color: '#40260A'
+        })
+
+        this.layers.hand.add(label)
+      }
 
       if (picked)
       {

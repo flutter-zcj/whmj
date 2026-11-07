@@ -18,7 +18,6 @@ $glass: rgba(6, 26, 18, 0.92);
 .tb-center { position: absolute; left: 50%; top: 6px; display: flex; flex-direction: row; align-items: center; margin-left: -150px; width: 300px; height: 30px; justify-content: center; }
 .tb-center__text { position: relative; font-size: 18px; color: rgba(246, 233, 206, 0.82); letter-spacing: 1px; }
 .tb-right { position: absolute; right: 14px; top: 8px; display: flex; flex-direction: row; }
-.bar { pointer-events: none; position: absolute; left: 988px; top: 548px; display: flex; flex-direction: row; align-items: center; width: 150px; height: 56px; }
 .ops { position: absolute; left: 500px; top: 394px; display: flex; flex-direction: row; align-items: center; justify-content: center; width: 620px; height: 130px; pointer-events: none; }
 .op { position: relative; display: flex; align-items: center; justify-content: center; width: 92px; height: 92px; margin: 0 8px; pointer-events: auto; }
 .op__bg { position: absolute; left: 0; top: 0; width: 92px; height: 92px; }
@@ -30,12 +29,6 @@ $glass: rgba(6, 26, 18, 0.92);
 .op--pass { position: relative; display: flex; align-items: center; justify-content: center; width: 84px; height: 84px; margin: 0 8px; pointer-events: auto; }
 .op--pass .op__bg { position: absolute; left: 0; top: 0; width: 84px; height: 84px; }
 .op--pass .op__flag { position: relative; width: 62px; height: 62px; }
-.btnDiscard { position: relative; display: flex; align-items: center; justify-content: center; width: 150px; height: 56px; margin-left: auto; pointer-events: auto; border-radius: 28px; background: linear-gradient(160deg, #FFE39A 0%, #D9A44C 100%); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45); }
-.btnDiscard__text { position: relative; font-size: 24px; font-weight: 700; color: #2A1C05; letter-spacing: 2px; }
-.btnDiscard--off { position: relative; background: rgba(20, 44, 32, 0.9); border: 1px solid rgba(246, 233, 206, 0.28); box-shadow: none; }
-.btnDiscard--off .btnDiscard__text { position: relative; color: rgba(246, 233, 206, 0.5); }
-.btnDiscard--hint { position: relative; animation: discPulse 1.1s ease-in-out infinite; }
-@keyframes discPulse { 0%, 100% { box-shadow: 0 0 0 rgba(255, 215, 94, 0); } 50% { box-shadow: 0 0 22px rgba(255, 215, 94, 0.85); } }
 .mj-mask { position: absolute; left: 0; top: 0; display: flex; align-items: center; justify-content: center; width: 1334px; height: 750px; background: rgba(3, 30, 22, 0.78); }
 .mj-mask--clear { position: absolute; left: 0; top: 0; display: flex; align-items: center; justify-content: center; width: 1334px; height: 750px; background: rgba(2, 8, 6, 0.3); pointer-events: none; }
 .mj-mask--top { position: relative; align-items: flex-start; padding-top: 96px; box-sizing: border-box; }
@@ -153,15 +146,6 @@ $glass: rgba(6, 26, 18, 0.92);
 
       <view class="toast" v-if="tipText">
         <text class="toast__text">{{ tipText }}</text>
-      </view>
-
-      <view class="bar" v-if="!resultVisible && !guideVisible">
-        <view
-          v-if="phase === 'play' && discardVisible"
-          :class="discardClass"
-          @click="discardSelected">
-          <text class="btnDiscard__text">出 牌</text>
-        </view>
       </view>
 
       <view class="ops" v-if="!resultVisible && !guideVisible && displayOptions.length">
@@ -754,6 +738,7 @@ export default
       scene.onTileDiscard = (tile, index) =>
       {
         this.selectedIndex = index
+        audio.play('click')
         this.discardSelected()
       }
 
@@ -934,6 +919,12 @@ export default
         }
 
         audio.play('discard')
+
+        if (d.seat !== this.mySeat)
+        {
+          audio.playTile(d.tile)
+        }
+
         this.applySceneMode()
         this.render()
       })
@@ -1112,6 +1103,8 @@ export default
         return
       }
 
+      this.applySceneMode()
+
       this.scene.applyState(
       {
         seats: this.seats,
@@ -1121,6 +1114,7 @@ export default
         remain: this.remain,
         phase: this.phase,
         countdown: this.countdown,
+        laiZi: this.laiZi,
         lastDiscard: this.lastDiscard
       })
     },
