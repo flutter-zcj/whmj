@@ -41,8 +41,8 @@ function meldTileCount(meld)
   return 4
 }
 
-/** 我的手牌：单张宽高、间距、底边对齐位置、选中上移量 */
-const HAND = { w: 66, h: 92, gap: 3, bottom: 738, lift: 24, minW: 46 }
+/** 我的手牌：放大后单张宽高、间距、底边对齐位置、选中上移量 */
+const HAND = { w: 84, h: 118, gap: 2, bottom: 740, lift: 28, minW: 54 }
 
 /** 对家牌墙（顶部横排，牌面竖放） */
 const BACK_TOP = { x: 459, y: 84, pitch: 35, w: 30, h: 44 }
@@ -56,26 +56,26 @@ const BACK_SIDE = { rightX: 1278, leftX: 30, y: 214, pitch: 32, w: 28, h: 26 }
  * cols × rows 即该家最多同时显示的弃牌数
  */
 const POND = [
-  { axis: 'h', x: 398, y: 466, cols: 15, rows: 2, colStep: 36, rowStep: 46, rot: 0 },
-  { axis: 'v', x: 958, y: 290, cols: 7, rows: 3, colStep: 45, rowStep: 38, rot: 90 },
-  { axis: 'h', x: 398, y: 168, cols: 15, rows: 2, colStep: 36, rowStep: 46, rot: 0 },
-  { axis: 'v', x: 262, y: 290, cols: 7, rows: 3, colStep: 45, rowStep: 38, rot: 90 }
+  { axis: 'h', x: 398, y: 466, cols: 13, rows: 2, colStep: 40, rowStep: 50, rot: 0 },
+  { axis: 'v', x: 958, y: 290, cols: 6, rows: 3, colStep: 45, rowStep: 40, rot: 90 },
+  { axis: 'h', x: 398, y: 168, cols: 13, rows: 2, colStep: 40, rowStep: 50, rot: 0 },
+  { axis: 'v', x: 250, y: 290, cols: 6, rows: 3, colStep: 43, rowStep: 40, rot: 90 }
 ]
 
-/** 弃牌尺寸（未旋转时） */
-const POND_TILE = { w: 34, h: 42 }
+/** 弃牌尺寸（未旋转时），放大后仍保持四家互不重叠 */
+const POND_TILE = { w: 38, h: 46 }
 
 /** 副露区：起点、单张显示宽高、是否旋转、是否居中、可用最大宽度 */
 const MELD = [
-  { x: 14, y: 596, w: 30, h: 44, rot: 0, center: false, maxW: 320 },
+  { x: 14, y: 560, w: 26, h: 38, rot: 0, center: false, maxW: 320 },
   { x: 928, y: 236, w: 26, h: 34, rot: 90, center: false, maxW: 144 },
   { x: 0, y: 112, w: 30, h: 44, rot: 0, center: true, maxW: 470 },
   { x: 262, y: 236, w: 26, h: 34, rot: 90, center: false, maxW: 144 }
 ]
 
-/** 四家信息面板：0 我左下、1 右中、2 对家左上、3 左中 */
+/** 四家信息面板：0 我的座位卡上移让出整条底部给放大后的手牌、1 右中、2 对家左上、3 左中 */
 const PANEL = [
-  { x: 1146, y: 574, w: 176, h: 58 },
+  { x: 1146, y: 486, w: 176, h: 58 },
   { x: 1082, y: 300, w: 176, h: 58 },
   { x: 240, y: 60, w: 176, h: 58 },
   { x: 76, y: 300, w: 176, h: 58 }
@@ -139,7 +139,7 @@ export default class TableScene extends Phaser.Scene
 
     const xyf = `${ASSET_BASE}/xyf/table`
 
-    ;['bg_game', 'bg_center', 'time_bg', 'im_defaultheadbg', 'im_defaulthead_0', 'im_defaulthead_1', 'im_userscore', 'img_banker', 'wall_back'].forEach((name) =>
+    ;['bg_game', 'bg_center', 'time_bg', 'im_defaultheadbg', 'im_defaulthead_0', 'im_defaulthead_1', 'im_userscore', 'img_banker', 'wall_back', 'pointer'].forEach((name) =>
     {
       this.load.image(`xyf_${name}`, `${xyf}/${name}.png`)
     })
@@ -496,9 +496,11 @@ export default class TableScene extends Phaser.Scene
   /** 绘制四方弃牌堆，超过容量时只保留最近的牌 */
   drawPonds()
   {
+    this.layers.pond.list.forEach((child) => this.tweens.killTweensOf(child))
     this.layers.pond.removeAll(true)
 
     const seats = this.state.seats || []
+    const last = this.state.lastDiscard || null
 
     seats.forEach((seat, index) =>
     {
@@ -529,20 +531,38 @@ export default class TableScene extends Phaser.Scene
           ? layout.y + row * layout.rowStep + bh / 2
           : layout.y + col * layout.colStep + bh / 2
 
+        const isLatest = i === list.length - 1 && !!last && last.seat === index
         const img = this.makeTile(tileKey(tile), x, y, POND_TILE.w, POND_TILE.h, rot)
 
-        /* 每家最后一张弃牌加亮边，便于看清刚打出的牌 */
+        /* 全场最后打出的牌放大并压在最上层，配合橙色指针让对手出牌一眼可见 */
+        if (isLatest)
+        {
+          img.setDisplaySize(POND_TILE.w * 1.24, POND_TILE.h * 1.24)
+        }
+
+        this.layers.pond.add(img)
+
         if (i === list.length - 1)
         {
           const mark = this.add.graphics()
 
-          mark.lineStyle(2, 0xFFD75E, 0.95)
+          mark.lineStyle(isLatest ? 3 : 2, isLatest ? 0xFFB020 : 0xFFD75E, isLatest ? 1 : 0.55)
           mark.strokeRoundedRect(x - bw / 2 - 1, y - bh / 2 - 1, bw + 2, bh + 2, 5)
           this.layers.pond.add(mark)
-          this.tweens.add({ targets: mark, alpha: { from: 1, to: 0.3 }, duration: 700, yoyo: true, repeat: -1 })
-        }
 
-        this.layers.pond.add(img)
+          if (isLatest)
+          {
+            const pin = this.add.image(x, y - bh / 2 - 18, 'xyf_pointer')
+
+            pin.setDisplaySize(30, 39)
+            this.layers.pond.add(pin)
+            this.tweens.add({ targets: pin, y: pin.y - 6, duration: 620, yoyo: true, repeat: -1, ease: 'Sine.InOut' })
+          }
+          else
+          {
+            this.tweens.add({ targets: mark, alpha: { from: 1, to: 0.3 }, duration: 700, yoyo: true, repeat: -1 })
+          }
+        }
       })
     })
   }
@@ -697,10 +717,10 @@ export default class TableScene extends Phaser.Scene
       return
     }
 
-    const startMin = Math.max(210, 14 + this.myMeldWidth + 20)
-    /* 右边界让出我的座位卡（1146 起），避免手牌被压住 */
-    const rightMax = 1136
-    const gap = hand.length >= 14 ? HAND.gap : 6
+    const startMin = Math.max(170, 14 + this.myMeldWidth + 20)
+    /* 我的座位卡已上移，底部整条留给放大后的手牌 */
+    const rightMax = 1270
+    const gap = hand.length >= 14 ? HAND.gap : 4
     const avail = rightMax - startMin
     let tw = Math.min(HAND.w, Math.floor((avail - (hand.length - 1) * gap) / hand.length))
 

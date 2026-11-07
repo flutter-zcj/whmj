@@ -22,6 +22,8 @@ whmj/
 │   ├── src/utils/whmj/         api/http/socket/pomelo/protocol/audio/const/table(scene.js)
 │   ├── src/static/whmj/        牌面、图标、音效、生成资源（gen/）
 │   │   ├── xl/                  XianLaiGame 素材：hall/tile/table/result/action
+│   │   ├── xyf/table/pointer.png  出牌指示水滴指针（PIL 自绘）
+│   │   ├── audio/voice/        28 个牌名播报语音 t1..t28.mp3（中文 TTS 生成）
 │   │   └── xyf/                 xiyoufang/mahjong 原版牌桌与结算素材（table/result）
 │   └── tools/gen_whmj_art.py   美术资源生成器（PIL，无外部素材）
 ├── server/                     服务端（Go 1.24 + cherry v1.6.9）
@@ -141,11 +143,16 @@ cd server && CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o whmj .
 | 操作按钮改为原版圆形发光底 + 过/碰/杠/胡字牌（胡为倾斜麻将牌造型，最大最醒目） | 通过（浏览器截图） |
 | 胜负/流局结算改为红色绸带横幅 + 米黄卷轴 + 四家头像/手牌缩略图/分数 + 胡旗/庄标/关闭按钮 | 通过（浏览器截图） |
 | 结算快照携带 `hand`（`ServerPlayer.Hand`），供四家手牌缩略图渲染 | 通过（`go test` + 浏览器） |
+| 我的手牌放大（66×92 → 84×118 上限，13/14 张实际约 81/77 宽），副露与座位卡上移让出整条底部，牌面清晰无重叠 | 通过（浏览器截图） |
+| 弃牌放大（34×42 → 38×46）并重排四方牌池，四家互不重叠；最后打出的牌再放大 1.24 倍 + 金框 | 通过（浏览器截图） |
+| 橙色水滴指针指向全场最后一张打出牌，带浮动动画；`onDiscard` 与快照 `last`/`lastSeat` 双向还原，断线重连不丢失 | 通过（浏览器实测注入 + 真实对局） |
+| 出牌播报具体牌名：`audio.playTile()` 在拍牌音效后 140ms 播放 `voice/tN.mp3`，系统中文 TTS 兜底，受声音开关控制 | 通过（浏览器实测 9 秒内 5 次出牌均播报一筒/六筒/七筒/五条/二万） |
+| 左上角皮子/赖子改「小牌面图 + 文字」左右排布深色卡片，赖子带金色「赖」角标与金边，随翻牌动态更新 | 通过（浏览器截图） |
 
 ## 7. 已知边界
 
 - 支付为模拟，未接入任何支付 SDK；登录为账号体系，不含微信/QQ 登录。
 - 四川麻将、拖拉机、斗地主、卡五星、晃晃、跑得快六个入口为占位（点击提示「即将上线」）。
-- 牌面与大厅 PNG 取自 `xYajun/XianLaiGame`（牌面放大 2 倍），牌桌与结算 PNG 取自 `xiyoufang/mahjong` 的 `Resources/res`（43 个文件，见 `web/src/static/whmj/xyf/`），图标与音效自绘；**不复制原版 APK 的像素与音频**。原包 `res.dat` 的加密方式已还原（XXTEA，密钥 `bzxgmj`，见 `docs/原版APK逆向分析.md`），仅用于规则比对。
+- 牌面与大厅 PNG 取自 `xYajun/XianLaiGame`（牌面放大 2 倍），牌桌与结算 PNG 取自 `xiyoufang/mahjong` 的 `Resources/res`（43 个文件，见 `web/src/static/whmj/xyf/`），出牌水滴指针自绘；28 个牌名播报语音由中文 TTS 合成后转 48k MP3（约 108 KB，见 `audio/voice/`），操作音效取自原版 APK 解码资源；**不复制原版 APK 的像素与音频**。原包 `res.dat` 的加密方式已还原（XXTEA，密钥 `bzxgmj`，见 `docs/原版APK逆向分析.md`），仅用于规则比对。
 - **本轮只做 UI 复刻，规则层未改**（按确认的分步方案）：`xiyoufang/mahjong` 是 136 张、含东南西北中发白的经典麻将（平胡/碰碰胡/清色/七对/钓鱼/扎鸟），`fwhappy/mahjong` 亦非武汉红中赖子杠规则。整体替换会重做牌张模型、牌面图、胡牌算法、番型、结算、AI 与全部单测，并使皮子/赖子、二五八将、开口、一炮单响失效，**136 张规则整体重写留待下一轮**。当前规则主干仍由 `internal/rule` + `internal/game` 维护，仅吸收状态机骨架与听牌枚举（`TingList`/`TingMap`）、单响结算思路；素材复刻不含任何原项目 C++ 代码。
 - 牌张为 112 张（万筒条 + 红中）；原版含风牌与发/白（136 张）并支持 4 种房型与「开口番/口口番」，差异清单见逆向分析文档第 3 节。

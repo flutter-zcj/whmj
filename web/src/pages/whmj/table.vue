@@ -74,8 +74,18 @@ $glass: rgba(6, 26, 18, 0.92);
 .guide__body { position: relative; display: flex; flex-direction: column; flex: 1; margin-left: 12px; }
 .guide__head { position: relative; font-size: 20px; font-weight: 700; color: $cream; }
 .guide__desc { position: relative; margin-top: 2px; font-size: 16px; line-height: 24px; color: rgba(246, 233, 206, 0.66); }
-.roundinfo { position: absolute; left: 16px; top: 62px; display: flex; flex-direction: row; }
-.roundinfo__item { position: relative; display: flex; align-items: center; height: 30px; margin-right: 8px; padding: 0 12px; font-size: 15px; color: $gold; background: rgba(4, 20, 14, 0.62); border: 1px solid $line; border-radius: 15px; }
+.roundinfo { position: absolute; left: 16px; top: 62px; display: flex; flex-direction: column; }
+.roundinfo__item { position: relative; display: flex; flex-direction: row; align-items: center; height: 48px; width: 146px; margin-bottom: 6px; padding: 0 10px; box-sizing: border-box; background: rgba(4, 20, 14, 0.86); border: 1px solid $line; border-radius: 10px; }
+.roundinfo__item--lai { position: relative; background: rgba(30, 18, 4, 0.9); border-color: #E8A93C; }
+.roundinfo__pic { position: relative; width: 30px; height: 40px; flex: none; }
+.roundinfo__tile { position: relative; width: 30px; height: 40px; }
+.roundinfo__tag { position: absolute; right: -5px; top: -6px; display: flex; align-items: center; justify-content: center; width: 18px; height: 18px; font-size: 12px; font-weight: 700; color: #4A2C08; background: linear-gradient(180deg, #FFE8A6 0%, #E8A93C 100%); border: 1px solid #FFF3D2; border-radius: 9px; }
+.roundinfo__body { position: relative; display: flex; flex-direction: column; margin-left: 10px; }
+.roundinfo__label { position: relative; font-size: 12px; line-height: 15px; color: rgba(255, 217, 138, 0.72); letter-spacing: 1px; }
+.roundinfo__name { position: relative; font-size: 18px; font-weight: 700; line-height: 22px; color: $gold; }
+.roundinfo__item--open { position: relative; height: 30px; width: 146px; padding: 0 12px; border-radius: 15px; }
+.roundinfo__hint { position: relative; font-size: 14px; color: $gold; }
+.roundinfo__item--ok .roundinfo__hint { position: relative; color: #8FE0A8; }
 .toast { pointer-events: none; position: absolute; left: 50%; top: 546px; display: flex; align-items: center; justify-content: center; margin-left: -320px; width: 640px; height: 46px; background: rgba(4, 20, 14, 0.94); border: 1px solid rgba(255, 217, 138, 0.5); border-radius: 14px; }
 .toast__text { position: relative; font-size: 18px; color: $gold; }
 .fx { position: absolute; left: 0; top: 250px; display: flex; align-items: center; justify-content: center; width: 1334px; }
@@ -91,10 +101,29 @@ $glass: rgba(6, 26, 18, 0.92);
     <view class="layer layer--hud" :style="rootStyle">
 
       <view class="roundinfo">
-        <text class="roundinfo__item">皮子 {{ piziText }}</text>
-        <text class="roundinfo__item">赖子 {{ laiziText }}</text>
-        <text class="roundinfo__item" v-if="myOpened === 0">未开口 · 不能胡</text>
-        <text class="roundinfo__item" v-else>已开 {{ myOpened }} 口</text>
+        <view class="roundinfo__item">
+          <image class="roundinfo__tile" :src="piziImage" mode="aspectFit" />
+          <view class="roundinfo__body">
+            <text class="roundinfo__label">皮子</text>
+            <text class="roundinfo__name">{{ piziText }}</text>
+          </view>
+        </view>
+        <view class="roundinfo__item roundinfo__item--lai">
+          <view class="roundinfo__pic">
+            <image class="roundinfo__tile" :src="laiziImage" mode="aspectFit" />
+            <text class="roundinfo__tag">赖</text>
+          </view>
+          <view class="roundinfo__body">
+            <text class="roundinfo__label">赖子</text>
+            <text class="roundinfo__name">{{ laiziText }}</text>
+          </view>
+        </view>
+        <view class="roundinfo__item roundinfo__item--open" v-if="myOpened === 0">
+          <text class="roundinfo__hint">未开口 · 不能胡</text>
+        </view>
+        <view class="roundinfo__item roundinfo__item--open roundinfo__item--ok" v-else>
+          <text class="roundinfo__hint">已开 {{ myOpened }} 口</text>
+        </view>
       </view>
 
       <view class="topbar">
@@ -295,6 +324,7 @@ export default
       maxRound: 4,
       piZi: 0,
       laiZi: 0,
+      lastDiscard: null,
       phase: '',
       turn: -1,
       remain: 0,
@@ -338,6 +368,18 @@ export default
     laiziText()
     {
       return this.laiZi ? tileName(this.laiZi) : '—'
+    },
+
+    /** 皮子牌面图，未开局时回落为牌背 */
+    piziImage()
+    {
+      return this.tileImage(this.piZi)
+    },
+
+    /** 赖子牌面图，未开局时回落为牌背 */
+    laiziImage()
+    {
+      return this.tileImage(this.laiZi)
     },
 
     /** 我的开口次数 */
@@ -806,6 +848,7 @@ export default
         this.options = []
         this.selectedIndex = -1
         this.tipText = ''
+        this.lastDiscard = null
         this.piZi = d.pizi || 0
         this.laiZi = d.laizi || 0
         this.showTip(`第 ${d.round} 局开始：皮子 ${tileName(this.piZi)}，赖子 ${tileName(this.laiZi)}`)
@@ -875,6 +918,8 @@ export default
 
       on('onDiscard', (d) =>
       {
+        this.lastDiscard = { seat: d.seat, tile: d.tile }
+
         if (this.seats[d.seat])
         {
           this.seats[d.seat].discards = (this.seats[d.seat].discards || []).concat([d.tile])
@@ -895,6 +940,7 @@ export default
         }
 
         audio.play('discard')
+        audio.playTile(d.tile)
         this.applySceneMode()
         this.render()
       })
@@ -1026,6 +1072,11 @@ export default
       this.tingTips = d.tingTips || []
       this.selectedIndex = -1
 
+      if (d.last > 0 && typeof d.lastSeat === 'number' && d.lastSeat >= 0)
+      {
+        this.lastDiscard = { seat: d.lastSeat, tile: d.last }
+      }
+
       this.applySceneMode()
       this.render()
     },
@@ -1076,7 +1127,8 @@ export default
         turn: this.turn,
         remain: this.remain,
         phase: this.phase,
-        countdown: this.countdown
+        countdown: this.countdown,
+        lastDiscard: this.lastDiscard
       })
     },
 
@@ -1266,7 +1318,8 @@ export default
             turn: this.turn,
             remain: this.remain,
             phase: this.phase,
-            countdown: this.countdown
+            countdown: this.countdown,
+            lastDiscard: this.lastDiscard
           })
         }
 
