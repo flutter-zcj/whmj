@@ -13,7 +13,7 @@
 | 脚本怎么保护 | Cocos2d-x `LuaStack` 的 **XXTEA**：签名 `bianfengqipai` + 密钥 `03f0fdcbf5215b45fc790aaf2b965237` |
 | 资源包 `res.dat` | 59 MB 的 **加密 ZIP**，密钥 `bzxgmj`（`BFZipUtils::_PictureXxteaKey`），解出 **2472 个文件** |
 | 规则可还原度 | **100%**：`MahjongGames/WuHanMJ` 下 24 个 Lua 脚本全部可读，含番型表、结算表、操作位、房型 |
-| 美术 | `res.dat` 内含 `WuHanMJ` 的 277 个 png/plist/csb，可直接对照 UI 版式 |
+| 美术 | `res.dat` 内含 `WuHanMJ` 的 174 个 png/plist/csb（该模块共 301 个文件），可直接对照 UI 版式 |
 
 ## 2. 证据链
 
