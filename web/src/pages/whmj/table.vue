@@ -18,7 +18,7 @@ $glass: rgba(6, 26, 18, 0.92);
 .tb-center { position: absolute; left: 50%; top: 6px; display: flex; flex-direction: row; align-items: center; margin-left: -150px; width: 300px; height: 30px; justify-content: center; }
 .tb-center__text { position: relative; font-size: 18px; color: rgba(246, 233, 206, 0.82); letter-spacing: 1px; }
 .tb-right { position: absolute; right: 14px; top: 8px; display: flex; flex-direction: row; }
-.ops { position: absolute; left: 500px; top: 394px; display: flex; flex-direction: row; align-items: center; justify-content: center; width: 620px; height: 130px; pointer-events: none; }
+.ops { position: absolute; left: 380px; top: 394px; display: flex; flex-direction: row; align-items: center; justify-content: center; width: 620px; height: 130px; pointer-events: none; }
 .op { position: relative; display: flex; align-items: center; justify-content: center; width: 92px; height: 92px; margin: 0 8px; pointer-events: auto; }
 .op__bg { position: absolute; left: 0; top: 0; width: 92px; height: 92px; }
 .op__flag { position: relative; width: 66px; height: 66px; }
