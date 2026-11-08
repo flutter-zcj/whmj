@@ -81,6 +81,8 @@ func (r *Room) OnInit() {
 	r.Local().Register("sync", r.onSync)
 	r.Local().Register("leave", r.onLeave)
 	r.Local().Register("nextRound", r.onNextRoundReq)
+	r.Local().Register("addBot", r.onAddBot)
+	r.Local().Register("start", r.onStart)
 
 	r.Remote().Register("join", r.onJoin)
 
@@ -146,9 +148,20 @@ func (r *Room) seatPlayer(req *JoinReq) int {
 		}
 	}
 
+	/* 优先坐空位，空位满了才顶替机器人 */
 	if idx < 0 {
 		for i, s := range r.seats {
-			if s == nil || s.Bot {
+			if s == nil {
+				idx = i
+
+				break
+			}
+		}
+	}
+
+	if idx < 0 {
+		for i, s := range r.seats {
+			if s != nil && s.Bot {
 				idx = i
 
 				break
@@ -160,7 +173,8 @@ func (r *Room) seatPlayer(req *JoinReq) int {
 		return -1
 	}
 
-	if r.seats[idx] == nil || r.seats[idx].UID == 0 || r.seats[idx].UID == req.UID {
+	/* UID <= 0 是机器人占位，真人进来直接顶替，避免出现「坐着却不在房间」 */
+	if r.seats[idx] == nil || r.seats[idx].UID <= 0 || r.seats[idx].UID == req.UID {
 		nick := req.Nick
 		if nick == "" {
 			nick = "玩家"
@@ -204,6 +218,7 @@ func (r *Room) onOffline(req *UIDReq) {
 		}
 	}
 
+	r.transferOwner(cfacade.UID(req.UID))
 	r.pushRoomState()
 	r.schedule()
 }
@@ -232,8 +247,26 @@ func (r *Room) markOffline(uid cfacade.UID) {
 		agent.SetData("roomId", "")
 	}
 
+	r.transferOwner(uid)
 	r.pushRoomState()
 	r.schedule()
+}
+
+// transferOwner 房主离开时把房主身份交给座位号最小的人类玩家。
+func (r *Room) transferOwner(uid cfacade.UID) {
+	if !r.isOwner(uid) {
+		return
+	}
+
+	r.owner = ""
+
+	for _, s := range r.seats {
+		if s != nil && s.UID > 0 && s.Online {
+			r.owner = fmt.Sprintf("%d", s.UID)
+
+			return
+		}
+	}
 }
 
 // --- 准备与开局 ---
@@ -254,23 +287,80 @@ func (r *Room) onReady(session *cproto.Session, _ *Empty) {
 	s.Ready = true
 	r.pushRoomState()
 	r.ack(session)
+}
 
-	if r.game != nil && !r.game.Over() {
+// isOwner 判断某位玩家是否是房主。
+func (r *Room) isOwner(uid cfacade.UID) bool {
+	return r.owner != "" && r.owner == fmt.Sprintf("%d", uid)
+}
+
+// onAddBot 房主在空位上补一个电脑玩家，补满后由房主手动开局。
+func (r *Room) onAddBot(session *cproto.Session, _ *Empty) {
+	if r.closed {
 		return
 	}
 
-	// 空位由机器人补齐，因此只需校验已在座的人类玩家是否都准备了。
-	for _, seat := range r.seats {
-		if seat == nil || seat.Bot {
-			continue
-		}
+	if r.game != nil && !r.game.Over() {
+		r.reject(session, -1, "牌局进行中，不能添加电脑")
 
-		if !seat.Ready {
-			return
+		return
+	}
+
+	if !r.isOwner(session.Uid) {
+		r.reject(session, -1, "只有房主可以添加电脑")
+
+		return
+	}
+
+	idx := -1
+
+	for i, s := range r.seats {
+		if s == nil {
+			idx = i
+
+			break
 		}
 	}
 
+	if idx < 0 {
+		r.reject(session, -1, "房间已经坐满了")
+
+		return
+	}
+
+	names := []string{"小美", "阿福", "老王", "圆圆"}
+	r.seats[idx] = &Seat{
+		UID:    -int64(idx + 1),
+		Nick:   names[idx%len(names)],
+		Bot:    true,
+		Online: true,
+		Ready:  true,
+	}
+
+	r.pushRoomState()
+	r.ack(session)
+}
+
+// onStart 房主手动开局：空位自动补电脑，不需要等其他玩家准备。
+func (r *Room) onStart(session *cproto.Session, _ *Empty) {
+	if r.closed {
+		return
+	}
+
+	if r.game != nil && !r.game.Over() {
+		r.reject(session, -1, "牌局进行中")
+
+		return
+	}
+
+	if !r.isOwner(session.Uid) {
+		r.reject(session, -1, "只有房主可以开始游戏")
+
+		return
+	}
+
 	r.startGame()
+	r.ack(session)
 }
 
 // fillBots 补满空位为机器人，保证单人也能开局。
@@ -603,13 +693,14 @@ func (r *Room) pushRoomState() {
 
 	d := struct {
 		RoomID   string     `json:"roomId"`
+		Owner    string     `json:"owner"`
 		Base     int        `json:"base"`
 		Round    int        `json:"round"`
 		MaxRound int        `json:"maxRound"`
 		Phase    string     `json:"phase"`
 		Turn     int        `json:"turn"`
 		Seats    []SeatView `json:"seats"`
-	}{RoomID: r.id, Base: r.cfg.Base, Round: r.round, MaxRound: r.maxRound, Seats: views}
+	}{RoomID: r.id, Owner: r.owner, Base: r.cfg.Base, Round: r.round, MaxRound: r.maxRound, Seats: views}
 
 	if r.game != nil {
 		d.Phase = string(r.game.Phase)
@@ -627,6 +718,7 @@ func (r *Room) syncTo(seat int) {
 // Snapshot 房间快照，进房与断线重连时下发给单个座位。
 type Snapshot struct {
 	RoomID   string        `json:"roomId"`
+	Owner    string        `json:"owner"`
 	Base     int           `json:"base"`
 	Round    int           `json:"round"`
 	MaxRound int           `json:"maxRound"`
@@ -645,7 +737,7 @@ type Snapshot struct {
 // buildSnapshot 组装某个座位的完整视图，未开局时只带座位信息。
 func (r *Room) buildSnapshot(seat int) *Snapshot {
 	snap := &Snapshot{
-		RoomID: r.id, Base: r.cfg.Base, Round: r.round, MaxRound: r.maxRound,
+		RoomID: r.id, Owner: r.owner, Base: r.cfg.Base, Round: r.round, MaxRound: r.maxRound,
 		Seats: r.seatViews(), Hand: []int{}, Options: []game.Option{}, Turn: -1,
 	}
 

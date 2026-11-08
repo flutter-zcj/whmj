@@ -70,10 +70,10 @@ const POND_LATEST_SCALE = 1.4
 
 /** 副露区：起点、单张显示宽高、是否旋转、是否居中、可用最大宽度 */
 const MELD = [
-  { x: 14, y: 536, w: 34, h: 48, rot: 0, center: false, maxW: 340 },
-  { x: 928, y: 236, w: 30, h: 40, rot: 90, center: false, maxW: 150 },
-  { x: 0, y: 112, w: 34, h: 48, rot: 0, center: true, maxW: 480 },
-  { x: 262, y: 236, w: 30, h: 40, rot: 90, center: false, maxW: 150 }
+  { x: 20, y: 490, w: 34, h: 48, rot: 0, center: false, maxW: 400, vertical: false },
+  { x: 1078, y: 252, w: 30, h: 40, rot: 90, center: false, maxW: 232, vertical: true },
+  { x: 0, y: 96, w: 34, h: 48, rot: 0, center: true, maxW: 480, vertical: false },
+  { x: 16, y: 252, w: 30, h: 40, rot: 90, center: false, maxW: 200, vertical: true }
 ]
 
 /** 四家信息面板：0 我的座位卡上移让出整条底部给放大后的手牌、1 右中、2 对家左上、3 左中 */
@@ -741,21 +741,30 @@ export default class TableScene extends Phaser.Scene
       /* 服务端 type：1 吃、2 碰、3 明杠、4 暗杠、5 补杠、6 特殊杠 */
       const counts = melds.map((meld) => meldTileCount(meld))
       const bw = layout.rot ? layout.h : layout.w
-      const pitch = bw + 2
+      const bh = layout.rot ? layout.w : layout.h
       let total = 0
 
-      counts.forEach((c) =>
+      /* 竖排组：每家副露摆成一个小方阵，组内竖着码牌，组与组横向排开 */
+      if (layout.vertical)
       {
-        total += c * pitch + 8
-      })
+        total = melds.length * (bw + 8) - 8
+      }
+      else
+      {
+        counts.forEach((c) =>
+        {
+          total += c * (bw + 2) + 8
+        })
 
-      total -= 8
+        total -= 8
+      }
 
       /* 超宽时整体缩小，避免压到别家区域 */
       const scale = total > layout.maxW ? layout.maxW / total : 1
       const sw = layout.w * scale
       const sh = layout.h * scale
-      const sp = (bw * scale) + 2
+      const sp = layout.vertical ? (bh + 4) * scale : (bw + 2) * scale
+      const gap = layout.vertical ? (bw + 8) * scale : 8 * scale
       total *= scale
 
       let cursor = layout.center ? Math.round((STAGE_WIDTH - total) / 2) : layout.x
@@ -774,13 +783,13 @@ export default class TableScene extends Phaser.Scene
         {
           const tile = meld.type === 1 ? meld.start + i : meld.tile
           const key = hidden ? 'tile_back_wall' : tileKey(tile)
-          const x = cursor + i * sp + (bw * scale) / 2
-          const y = layout.y + sh / 2
+          const x = layout.vertical ? cursor + bw * scale / 2 : cursor + i * sp + bw * scale / 2
+          const y = layout.vertical ? layout.y + i * sp + bh * scale / 2 : layout.y + sh / 2
 
           this.layers.meld.add(this.makeTile(key, x, y, sw, sh, layout.rot))
         }
 
-        cursor += counts[mi] * sp + 8 * scale
+        cursor += layout.vertical ? gap : counts[mi] * sp + gap
       })
     })
   }

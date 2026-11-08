@@ -70,7 +70,7 @@ WebSocket（cherry pomelo，JSON 序列化），路由前缀即节点类型 `whm
 | --- | --- | --- |
 | C→S | `whmj.gate.auth` | 握手后绑定 token |
 | C→S | `whmj.lobby.enter` / `list` / `quickStart` / `createRoom` / `joinRoom` | 大厅 |
-| C→S | `whmj.room.sync` / `ready` / `discard` / `action` / `leave` / `nextRound` | 牌桌（`nextRound` 为结算后手动开下一局） |
+| C→S | `whmj.room.sync` / `ready` / `discard` / `action` / `leave` / `nextRound` / `addBot` / `start` | 牌桌与房间页（`nextRound` 结算后手动开下一局；`addBot` 房主补电脑；`start` 房主开局） |
 | S→C | `onDeal` `onDraw` `onDiscard` `onTurn` `onAsk` `onActionDone` `onTing` `onSync` `onGameOver` `onRoomState` | 下行事件；`onTing` 带 `tips`，快照带 `tingTips`（`{discard, tiles}`） |
 
 HTTP（前缀 `/whmj-api/`）：`POST /login`、`POST /register`、`GET|POST /profile`、`POST /records`、`GET /plays`。
@@ -160,6 +160,8 @@ cd server && CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o whmj .
 | 去掉场次概念：房间不再预设「第 x/4 局」，进入即开一局，`maxRound=0` 表示不限；顶栏主行改房号（`底分 1 · 单局结算` 为副行）；结算后不再 4 秒自动开下一局，改由面板「开始下一局」发 `whmj.room.nextRound` | 通过（`room.round` 1→2、手牌重置 13、牌墙重置；结算面板停留 6.5s 未自动开新局，`pageerror: 0`） |
 | 顶栏再精简：删掉左上返回箭头（退出统一走右上 ×），整行只留「房号 ××××××」与「底分 1 · 单局结算」 | 通过（线上截图 `live22_topbar.png`） |
 | 弃牌被压叠：末张放大牌原来以中心对齐、向四周各溢出 12px，压住左右邻居；改为保持视觉左上角不动、只向右下扩展（末张右侧与下方必定无牌），放大倍数 1.5→1.4，去掉压在上家的橙色指针改为双圈描边；同时横排行距 62→64、牌池整体左移 4px，避免放大牌与右家牌池相撞 | 通过（`pond16.png` / `live_pond16.png`：四家各 16 张，56 张牌两两矩形相交检测 0 重叠；真实对局 26 步 `pageerror: 0`） |
+| 副露（吃碰杠）归位：原来四家的面子都横排在各自牌池上方，与弃牌挤在一起，自己的一排还压着手牌；改为各靠各家一侧——自己左下角手牌上方横排、对家顶部居中横排、左右两家各自靠边竖排成方阵，并修正副露整体缩放时步长与总宽算法不一致导致的右侧溢出 | 通过（真实对局 `meld_live_mid.png`：左家/右家竖排、对家/自己横排，56 张副露与 56 张弃牌矩形相交检测 0 重叠） |
+| 房间等待页：创建房间不再直接补 3 个机器人开局，改为进入独立房间页（横屏 1334×750）：显示房号与四个座位，房主可点空位「+」添加电脑、点「开始游戏」开局（空位自动补电脑），其他玩家凭房号入座后可一起开局；服务端新增 `room.addBot` / `room.start`，`onReady` 不再自动开局，房主离开时房主身份自动转移 | 通过（双人验收 `live_room_two_*`：A 建房加 1 电脑，B 凭房号坐进空位，A 开局后两端同时进入牌桌，`pageerror: 0`） |
 
 ## 7. 已知边界
 

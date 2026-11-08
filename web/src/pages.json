@@ -33,6 +33,14 @@
       }
     },
     {
+      "name": "whmjRoom",
+      "path": "pages/whmj/room",
+      "style": {
+        "navigationBarTitleText": "房间",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "name": "whmjTable",
       "path": "pages/whmj/table",
       "style": {

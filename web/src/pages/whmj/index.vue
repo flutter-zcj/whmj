@@ -547,8 +547,6 @@ export default
       clearTimeout(this.toastTimer)
       this.toastTimer = null
     }
-
-    socket.destroy()
   },
 
   methods:
@@ -654,7 +652,7 @@ export default
       }
     },
 
-    /** 建一桌新房间并进入 */
+    /** 建一桌新房间，先进房间等待页，由房主决定加几个电脑再开局 */
     async quickStart()
     {
       if (this.busy)
@@ -668,14 +666,14 @@ export default
       try
       {
         await this.ensureSocket()
-        const res = await socket.request('whmj.lobby.quickStart', { base: 1, bots: 3 })
+        const res = await socket.request('whmj.lobby.createRoom', { base: 1 })
 
         socket.setRoom(res.roomId)
-        uni.navigateTo({ url: `/pages/whmj/table?roomId=${res.roomId}` })
+        uni.navigateTo({ url: `/pages/whmj/room?roomId=${res.roomId}` })
       }
       catch (err)
       {
-        this.toast(err.message || '开局失败')
+        this.toast(err.message || '创建房间失败')
       }
       finally
       {
@@ -717,7 +715,7 @@ export default
 
         socket.setRoom(roomId)
         this.sheet = ''
-        uni.navigateTo({ url: `/pages/whmj/table?roomId=${roomId}` })
+        uni.navigateTo({ url: `/pages/whmj/room?roomId=${roomId}` })
       }
       catch (err)
       {

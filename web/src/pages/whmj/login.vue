@@ -89,7 +89,7 @@ $danger: #FF7A6B;
       </view>
 
       <view class="guest" @click="guestPlay">
-        <text class="guest__text">游客试玩 · 一键开局</text>
+        <text class="guest__text">游客试玩 · 免注册进入</text>
       </view>
 
       <view class="tip" v-if="tipText">
