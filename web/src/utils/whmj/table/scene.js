@@ -139,7 +139,7 @@ export default class TableScene extends Phaser.Scene
 
     const xyf = `${ASSET_BASE}/xyf/table`
 
-    ;['bg_game', 'bg_center', 'time_bg', 'im_defaultheadbg', 'im_defaulthead_0', 'im_defaulthead_1', 'im_userscore', 'img_banker', 'wall_back', 'pointer'].forEach((name) =>
+    ;['bg_game', 'bg_center', 'time_bg', 'time0', 'time1', 'time2', 'time3', 'im_defaultheadbg', 'im_defaulthead_0', 'im_defaulthead_1', 'im_userscore', 'img_banker', 'wall_back', 'pointer'].forEach((name) =>
     {
       this.load.image(`xyf_${name}`, `${xyf}/${name}.png`)
     })
@@ -152,6 +152,7 @@ export default class TableScene extends Phaser.Scene
     this.drawTable()
 
     this.layers.back = this.add.container(0, 0)
+    this.layers.dir = this.add.container(0, 0)
     this.layers.pond = this.add.container(0, 0)
     this.layers.meld = this.add.container(0, 0)
     this.layers.hand = this.add.container(0, 0)
@@ -213,18 +214,11 @@ export default class TableScene extends Phaser.Scene
       color: '#F6D64A'
     }).setOrigin(0.5).setShadow(0, 0, '#C98A16', 14, false, true)
 
-    const cap = this.add.graphics()
-
-    cap.fillStyle(0x0A4B33, 0.86)
-    cap.fillRoundedRect(cx + 84, cy - 21, 156, 42, 21)
-    cap.lineStyle(1.5, 0x4FB37C, 0.8)
-    cap.strokeRoundedRect(cx + 84, cy - 21, 156, 42, 21)
-
-    this.centerLabel = this.add.text(cx + 162, cy,
+    this.centerLabel = this.add.text(cx, cy + 47,
     '', {
       fontFamily: FONT,
-      fontSize: '19px',
-      color: '#A8E8BF'
+      fontSize: '15px',
+      color: '#9FE0B8'
     }).setOrigin(0.5)
 
     this.centerFoot = this.add.text(cx, cy + 78,
@@ -234,20 +228,62 @@ export default class TableScene extends Phaser.Scene
       color: '#CDEBD6'
     }).setOrigin(0.5)
 
-    this.turnPillBg = this.add.graphics()
+    /* 四方位出牌指示：用原版 time0..3 图片指向当前行动玩家，不再用文字胶囊 */
+    /* 四方位出牌指示：箭头贴着方块边缘指向该家，用原版 time0..3 图片 */
+    this.turnDirs = [
+      this.add.image(cx, cy + 124, 'xyf_time0').setDisplaySize(280, 133),
+      this.add.image(cx - 120, cy, 'xyf_time1').setDisplaySize(110, 230),
+      this.add.image(cx, cy - 124, 'xyf_time2').setDisplaySize(280, 133),
+      this.add.image(cx + 120, cy, 'xyf_time3').setDisplaySize(110, 230)
+    ]
 
-    this.turnPill = this.add.text(cx, cy - 100,
-    '', {
-      fontFamily: FONT,
-      fontSize: '18px',
-      fontStyle: 'bold',
-      color: '#FFE9A8'
-    }).setOrigin(0.5)
+    this.turnDirs.forEach((img) =>
+    {
+      img.setVisible(false)
+      img.setAlpha(0)
+      img.setBlendMode(Phaser.BlendModes.ADD)
+    })
+
+    this.turnDirTween = this.tweens.add({
+      targets: this.turnDirs,
+      alpha: { from: 0.55, to: 1 },
+      duration: 620,
+      yoyo: true,
+      repeat: -1
+    })
+
+    /* 方块四边的金色小箭头：与光带同步，明确指向当前出牌的那一家 */
+    const arrowAt = [
+      { x: cx, y: cy + 72, rot: Math.PI },
+      { x: cx - 72, y: cy, rot: -Math.PI / 2 },
+      { x: cx, y: cy - 72, rot: 0 },
+      { x: cx + 72, y: cy, rot: Math.PI / 2 }
+    ]
+
+    this.turnArrows = arrowAt.map((item) =>
+    {
+      const g = this.add.graphics()
+
+      g.fillStyle(0xFFD75E, 1)
+      g.lineStyle(2, 0xFFF3D2, 0.95)
+      g.beginPath()
+      g.moveTo(0, -10)
+      g.lineTo(9, 7)
+      g.lineTo(-9, 7)
+      g.closePath()
+      g.fillPath()
+      g.strokePath()
+      g.setPosition(item.x, item.y)
+      g.setRotation(item.rot)
+      g.setVisible(false)
+
+      return g
+    })
 
     this.turnRing = this.add.graphics()
 
     this.turnRing.lineStyle(4, 0xFFD75E, 1)
-    this.turnRing.strokeRoundedRect(cx - 70, cy - 70, 140, 140, 16)
+    this.turnRing.strokeRoundedRect(cx - 66, cy - 66, 132, 132, 16)
     this.turnRing.setAlpha(0)
 
     this.turnRingTween = this.tweens.add({
@@ -259,8 +295,10 @@ export default class TableScene extends Phaser.Scene
       paused: true
     })
 
-    this.layers.effect.add([this.turnPillBg, this.turnPill, this.turnRing])
-    this.layers.effect.add([cap, this.centerBig, this.centerLabel, this.centerFoot])
+    this.layers.effect.add(this.turnRing)
+    this.layers.effect.add(this.turnArrows)
+    this.layers.effect.add([this.centerBig, this.centerLabel, this.centerFoot])
+    this.layers.dir.add(this.turnDirs)
     this.dirLabels = []
   }
 
@@ -431,35 +469,49 @@ export default class TableScene extends Phaser.Scene
   }
 
   /**
-   * 中央倒计时旁「轮到谁出牌」提示：轮到自己时金色高亮 + 倒计时外圈脉冲
+   * 中央四方位出牌指示：轮到谁就点亮对应方向的图，并让倒计时外圈跟随脉冲
    * @param {Number} turnSeat 当前行动座位
    * @param {Number} mySeat 我的座位
    */
   updateTurnHint(turnSeat, mySeat)
   {
-    if (!this.turnPill || !this.turnPillBg)
-    {
-      return
-    }
-
-    const { x: cx, y: cy } = CENTER
     const me = mySeat || 0
     const mine = turnSeat === me
-    const seats = (this.state && this.state.seats) || []
-    const nick = (seats[turnSeat] && seats[turnSeat].nick) || '对手'
+    const view = (((turnSeat || 0) - me) % 4 + 4) % 4
+    const order = [0, 3, 2, 1]
+    const active = order[view]
 
-    this.turnPill.setText(mine ? '轮到你出牌' : `轮到 ${this.ellipsis(nick, 5)} 出牌`)
-    this.turnPill.setColor(mine ? '#FFF0BE' : '#CDEBD6')
+    if (this.turnDirs)
+    {
+      this.turnDirs.forEach((img, i) =>
+      {
+        if (!img)
+        {
+          return
+        }
 
-    const w = Math.max(136, Math.ceil(this.turnPill.width) + 40)
-    const h = 36
-    const py = cy - 100
+        const on = i === active
 
-    this.turnPillBg.clear()
-    this.turnPillBg.fillStyle(mine ? 0x6E4300 : 0x0A4B33, 0.92)
-    this.turnPillBg.lineStyle(mine ? 2.5 : 1.5, mine ? 0xFFD75E : 0x4FB37C, mine ? 1 : 0.85)
-    this.turnPillBg.fillRoundedRect(cx - w / 2, py - h / 2, w, h, h / 2)
-    this.turnPillBg.strokeRoundedRect(cx - w / 2, py - h / 2, w, h, h / 2)
+        img.setVisible(on)
+        img.setAlpha(on ? 1 : 0)
+      })
+
+      if (this.turnDirTween)
+      {
+        this.turnDirTween.resume()
+      }
+    }
+
+    if (this.turnArrows)
+    {
+      this.turnArrows.forEach((g, i) =>
+      {
+        if (g)
+        {
+          g.setVisible(i === active)
+        }
+      })
+    }
 
     if (this.turnRing)
     {
@@ -516,6 +568,12 @@ export default class TableScene extends Phaser.Scene
     }
 
     const handChanged = !this.state || (this.state.hand || []).join(',') !== (state.hand || []).join(',')
+
+    /* 倒计时每秒刷新只传局部状态，赖子/皮子沿用上一次的值，避免手牌角标被清掉 */
+    if (state.laiZi === undefined && this.state && this.state.laiZi !== undefined)
+    {
+      state.laiZi = this.state.laiZi
+    }
 
     this.state = state
 

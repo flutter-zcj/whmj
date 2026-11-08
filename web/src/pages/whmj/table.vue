@@ -1304,6 +1304,7 @@ export default
             remain: this.remain,
             phase: this.phase,
             countdown: this.countdown,
+            laiZi: this.laiZi,
             lastDiscard: this.lastDiscard
           })
         }
