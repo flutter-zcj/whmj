@@ -12,23 +12,29 @@ $glass: rgba(6, 26, 18, 0.92);
 .topbar { position: absolute; left: 0; top: 0; display: flex; flex-direction: row; align-items: center; width: 1334px; height: 54px; padding: 0 14px; box-sizing: border-box; background: linear-gradient(180deg, rgba(2, 8, 6, 0.86) 0%, rgba(2, 8, 6, 0) 100%); }
 .tb-btn { position: relative; display: flex; align-items: center; justify-content: center; width: 38px; height: 38px; margin-left: 10px; background: rgba(8, 30, 20, 0.6); border: 1px solid $line; border-radius: 19px; }
 .tb-btn__ico { position: relative; width: 22px; height: 22px; }
-.tb-rounds { position: relative; display: flex; flex-direction: column; margin-left: 12px; }
+.tb-rounds { position: relative; display: flex; flex-direction: column; }
 .tb-rounds__main { position: relative; font-size: 20px; font-weight: 700; line-height: 24px; color: #FFE9B4; letter-spacing: 1px; }
 .tb-rounds__sub { position: relative; font-size: 14px; line-height: 18px; color: rgba(246, 233, 206, 0.55); }
 .tb-center { position: absolute; left: 50%; top: 6px; display: flex; flex-direction: row; align-items: center; margin-left: -150px; width: 300px; height: 30px; justify-content: center; }
 .tb-center__text { position: relative; font-size: 18px; color: rgba(246, 233, 206, 0.82); letter-spacing: 1px; }
 .tb-right { position: absolute; right: 14px; top: 8px; display: flex; flex-direction: row; }
 .ops { position: absolute; left: 380px; top: 394px; display: flex; flex-direction: row; align-items: center; justify-content: center; width: 620px; height: 130px; pointer-events: none; }
-.op { position: relative; display: flex; align-items: center; justify-content: center; width: 92px; height: 92px; margin: 0 8px; pointer-events: auto; }
+.op { position: relative; flex: none; display: flex; align-items: center; justify-content: center; width: 92px; height: 92px; margin: 0 8px; pointer-events: auto; }
 .op__bg { position: absolute; left: 0; top: 0; width: 92px; height: 92px; }
 .op__flag { position: relative; width: 66px; height: 66px; }
 .op__label { position: relative; font-size: 30px; font-weight: 700; color: #FFF6DC; text-shadow: 0 2px 5px rgba(0, 0, 0, 0.7); }
-.op--hu { position: relative; display: flex; align-items: center; justify-content: center; width: 124px; height: 124px; margin: 0 8px; pointer-events: auto; }
+.op--hu { position: relative; flex: none; display: flex; align-items: center; justify-content: center; width: 124px; height: 124px; margin: 0 8px; pointer-events: auto; }
 .op--hu .op__bg { position: absolute; left: 0; top: 0; width: 124px; height: 124px; }
 .op--hu .op__flag { position: relative; width: 82px; height: 82px; }
-.op--pass { position: relative; display: flex; align-items: center; justify-content: center; width: 84px; height: 84px; margin: 0 8px; pointer-events: auto; }
+.op--pass { position: relative; flex: none; display: flex; align-items: center; justify-content: center; width: 84px; height: 84px; margin: 0 8px; pointer-events: auto; }
 .op--pass .op__bg { position: absolute; left: 0; top: 0; width: 84px; height: 84px; }
 .op--pass .op__flag { position: relative; width: 62px; height: 62px; }
+.op--chi { position: relative; flex: none; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 158px; height: 100px; margin: 0 6px; background: linear-gradient(180deg, rgba(16, 60, 41, 0.97) 0%, rgba(4, 24, 16, 0.98) 100%); border: 2px solid rgba(255, 217, 138, 0.9); border-radius: 14px; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(255, 255, 255, 0.12); pointer-events: auto; }
+.op--chi__tag { position: relative; margin-bottom: 3px; font-size: 15px; font-weight: 700; line-height: 16px; letter-spacing: 3px; color: #FFE9B4; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85); }
+.op--chi__tiles { position: relative; display: flex; flex-direction: row; align-items: center; justify-content: center; }
+.op--chi__tile { position: relative; width: 50px; height: 70px; margin-left: -12px; border-radius: 5px; }
+.op--chi__tile--first { margin-left: 0; }
+.op--chi__tile--from { box-shadow: 0 0 0 2px #FFD98A, 0 0 12px rgba(255, 217, 138, 0.9); }
 .mj-mask { position: absolute; left: 0; top: 0; display: flex; align-items: center; justify-content: center; width: 1334px; height: 750px; background: rgba(3, 30, 22, 0.78); }
 .mj-mask--clear { position: absolute; left: 0; top: 0; display: flex; align-items: center; justify-content: center; width: 1334px; height: 750px; background: rgba(2, 8, 6, 0.3); pointer-events: none; }
 .mj-mask--top { position: relative; align-items: flex-start; padding-top: 96px; box-sizing: border-box; }
@@ -117,12 +123,9 @@ $glass: rgba(6, 26, 18, 0.92);
       </view>
 
       <view class="topbar">
-        <view class="tb-btn" @click="handleLeave">
-          <image class="tb-btn__ico" :src="ico('arrow_left')" mode="aspectFit" />
-        </view>
         <view class="tb-rounds">
-          <text class="tb-rounds__main">第 {{ round }}/{{ maxRound }} 局</text>
-          <text class="tb-rounds__sub">房号 {{ roomId || '——' }} · 底分 {{ base }}</text>
+          <text class="tb-rounds__main">房号 {{ roomId || '——' }}</text>
+          <text class="tb-rounds__sub">底分 {{ base }} · 单局结算</text>
         </view>
         <view class="tb-center">
           <text class="tb-center__text">{{ centerText }}</text>
@@ -150,9 +153,22 @@ $glass: rgba(6, 26, 18, 0.92);
 
       <view class="ops" v-if="!resultVisible && !guideVisible && displayOptions.length">
         <view v-for="op in displayOptions" :key="op.type + '_' + op.tile" :class="opClass(op.type)" @click="doAction(op)">
-          <image class="op__bg" :src="opBg(op.type)" mode="aspectFit" />
-          <image v-if="opFlag(op.type)" class="op__flag" :src="opFlag(op.type)" mode="aspectFit" />
-          <text v-else class="op__label">{{ opLabel(op) }}</text>
+          <template v-if="op.isChi">
+            <text class="op--chi__tag">吃</text>
+            <view class="op--chi__tiles">
+              <image
+                v-for="(t, ti) in chiTiles(op)"
+                :key="ti"
+                :class="chiTileClass(t, ti)"
+                :src="tileImage(t)"
+                mode="aspectFit" />
+            </view>
+          </template>
+          <template v-else>
+            <image class="op__bg" :src="opBg(op.type)" mode="aspectFit" />
+            <image v-if="opFlag(op.type)" class="op__flag" :src="opFlag(op.type)" mode="aspectFit" />
+            <text v-else class="op__label">{{ opLabel(op) }}</text>
+          </template>
         </view>
       </view>
 
@@ -180,8 +196,8 @@ $glass: rgba(6, 26, 18, 0.92);
             </view>
           </view>
           <view class="result__ops">
-            <view class="result__btn" :class="round >= maxRound ? 'result__btn result__btn--off' : 'result__btn'" @click="resultVisible = false">
-              <text class="result__btnText">{{ round >= maxRound ? '整场已结束' : '继续下一局' }}</text>
+            <view class="result__btn" @click="startNextRound">
+              <text class="result__btnText">开始下一局</text>
             </view>
             <view class="result__btn" @click="handleLeave">
               <text class="result__btnText">返回大厅</text>
@@ -386,7 +402,7 @@ export default
       {
         if (this.options.length && this.turn !== this.mySeat)
         {
-          const names = this.displayOptions.filter((op) => op.type !== OP_PASS).map((op) => this.opLabel(op)).join(' / ')
+          const names = this.displayOptions.filter((op) => op.type !== OP_PASS).map((op) => this.opName(op)).join(' / ')
 
           return names ? `可以「${names}」，不要就点「过」` : '请选择操作'
         }
@@ -397,7 +413,7 @@ export default
 
           if (this.options.length)
           {
-            const names = this.displayOptions.filter((op) => op.type !== OP_PASS).map((op) => this.opLabel(op)).join(' / ')
+            const names = this.displayOptions.filter((op) => op.type !== OP_PASS).map((op) => this.opName(op)).join(' / ')
 
             return `自摸/杠：可点「${names}」，或选一张牌打出${hint}`
           }
@@ -421,7 +437,7 @@ export default
       return this.phase === 'play' && this.turn !== this.mySeat && this.options.length === 0
     },
 
-    /** 按钮展示顺序：胡 > 杠 > 暗杠 > 补杠 > 碰 > 过；别人出牌时要补一个「过」用于放弃 */
+    /** 按钮展示顺序：胡 > 杠 > 暗杠 > 补杠 > 碰 > 吃 > 过；别人出牌时要补一个「过」用于放弃 */
     displayOptions()
     {
       const weight = { [OP_HU]: 0, [OP_GANG]: 1, [OP_AN_GANG]: 2, [OP_BU_GANG]: 3, [OP_PENG]: 4, [OP_CHI]: 5, [OP_PASS]: 9 }
@@ -432,7 +448,7 @@ export default
         list.push({ type: OP_PASS, tile: 0 })
       }
 
-      return list
+      return list.map((op) => ({ ...op, isChi: op.type === OP_CHI }))
     },
 
     /** 出牌按钮是否展示 */
@@ -550,6 +566,12 @@ export default
     laiziCount()
     {
       return this.hand.filter((tile) => tile === 28).length
+    },
+
+    /** 最近一张弃牌的牌编码，用于在吃牌按钮里高亮被吃的那张 */
+    lastDiscardTile()
+    {
+      return this.lastDiscard && this.lastDiscard.tile ? this.lastDiscard.tile : 0
     }
   },
 
@@ -829,7 +851,7 @@ export default
         this.lastDiscard = null
         this.piZi = d.pizi || 0
         this.laiZi = d.laizi || 0
-        this.showTip(`第 ${d.round} 局开始：皮子 ${tileName(this.piZi)}，赖子 ${tileName(this.laiZi)}`)
+        this.showTip(`本局开始：皮子 ${tileName(this.piZi)}，赖子 ${tileName(this.laiZi)}`)
       })
 
       on('onDeal', (d) =>
@@ -1229,7 +1251,7 @@ export default
       const mine = (me && me.score) || 0
 
       this.resultTitle = mine > 0 ? '本 局 胜' : (mine < 0 ? '本 局 负' : '本 局 平')
-      this.resultSub = `第 ${this.round} 局结束 · 本局 ${mine >= 0 ? '+' : ''}${mine} 分 · ${this.round >= this.maxRound ? '整场结束' : '4 秒后自动开始下一局'}`
+      this.resultSub = `本局 ${mine >= 0 ? '+' : ''}${mine} 分 · 点「开始下一局」继续`
 
       audio.play(mine >= 0 ? 'win' : 'lose')
     },
@@ -1343,9 +1365,78 @@ export default
       }
     },
 
-    /** 打出选中的手牌 */
-    async discardSelected()
+    /** 结算后开下一局：只在本局已结束时生效，由服务端重新发牌 */
+    async startNextRound()
     {
+      audio.play('click')
+
+      try
+      {
+        await socket.request('whmj.room.nextRound')
+        this.resultVisible = false
+        this.options = []
+        this.selectedIndex = -1
+      }
+      catch (err)
+      {
+        this.showTip(err.message || '开局失败')
+      }
+    },
+
+    /**
+     * 吃牌按钮里的三张牌：服务端下发的 Tile 是顺子首张
+     * @param {Object} op 操作项
+     * @returns {Number[]} 顺子三张牌编码
+     */
+    chiTiles(op)
+    {
+      return [op.tile, op.tile + 1, op.tile + 2]
+    },
+
+    /**
+     * 吃牌按钮里单张牌的样式，首张不左移、被吃的那张加金框
+     * @param {Number} tile 牌编码
+     * @param {Number} index 在顺子里的序号
+     * @returns {String[]} 样式类名数组
+     */
+    chiTileClass(tile, index)
+    {
+      const list = ['op--chi__tile']
+
+      if (index === 0)
+      {
+        list.push('op--chi__tile--first')
+      }
+
+      if (tile === this.lastDiscardTile)
+      {
+        list.push('op--chi__tile--from')
+      }
+
+      return list
+    },
+
+    /**
+     * 操作项的中文名：吃牌带上牌型，多个吃法才好区分
+     * @param {Object} op 操作项
+     * @returns {String} 名称
+     */
+    opName(op)
+    {
+      if (op.type === OP_CHI)
+      {
+        const names = this.chiTiles(op).map((tile) => tileName(tile))
+        const suit = names[0].slice(-1)
+        const ranks = names.map((name) => name.slice(0, -1)).join('')
+
+        return `吃${ranks}${suit}`
+      }
+
+      return this.opLabel(op)
+    },
+
+    /** 打出选中的手牌 */
+    async discardSelected()    {
       const seat = this.seats[this.mySeat]
 
       if (seat && seat.finished)
@@ -1438,6 +1529,11 @@ export default
       if (type === OP_PASS)
       {
         return 'op--pass'
+      }
+
+      if (type === OP_CHI)
+      {
+        return 'op--chi'
       }
 
       return 'op'

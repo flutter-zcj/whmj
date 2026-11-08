@@ -80,6 +80,7 @@ func (r *Room) OnInit() {
 	r.Local().Register("action", r.onAction)
 	r.Local().Register("sync", r.onSync)
 	r.Local().Register("leave", r.onLeave)
+	r.Local().Register("nextRound", r.onNextRoundReq)
 
 	r.Remote().Register("join", r.onJoin)
 
@@ -294,7 +295,7 @@ func (r *Room) fillBots() {
 func (r *Room) startGame() {
 	r.fillBots()
 	r.round++
-	if r.round > r.maxRound {
+	if r.maxRound > 0 && r.round > r.maxRound {
 		r.round = 1
 	}
 
@@ -461,6 +462,25 @@ func (r *Room) onNextRound(_ *Empty) {
 	r.startGame()
 }
 
+// onNextRoundReq 结算后由客户端点击「开始下一局」触发。
+//
+// 一局一结算：本局没结束就拒绝，避免连点重复开桌；结束后重新发牌，
+// 皮子、赖子、庄家都按新一局重算。
+func (r *Room) onNextRoundReq(session *cproto.Session, _ *Empty) {
+	if r.closed {
+		return
+	}
+
+	if r.game != nil && !r.game.Over() {
+		r.reject(session, r.seatIndex(session.Uid), "本局还没结束")
+
+		return
+	}
+
+	r.startGame()
+	r.ack(session)
+}
+
 // --- 事件推送 ---
 
 func (r *Room) flush() {
@@ -524,18 +544,6 @@ func (r *Room) finishRound() {
 	}
 
 	r.pushRoomState()
-
-	if r.round >= r.maxRound {
-		r.broadcast("onRoomEnd", struct {
-			RoomID string `json:"roomId"`
-		}{RoomID: r.id})
-
-		return
-	}
-
-	r.Timer().AddOnce(4*time.Second, func() {
-		r.Call(r.PathString(), "next", &Empty{})
-	})
 }
 
 func (r *Room) broadcast(route string, v any) {

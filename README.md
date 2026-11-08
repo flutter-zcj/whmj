@@ -70,7 +70,7 @@ WebSocket（cherry pomelo，JSON 序列化），路由前缀即节点类型 `whm
 | --- | --- | --- |
 | C→S | `whmj.gate.auth` | 握手后绑定 token |
 | C→S | `whmj.lobby.enter` / `list` / `quickStart` / `createRoom` / `joinRoom` | 大厅 |
-| C→S | `whmj.room.sync` / `ready` / `discard` / `action` / `leave` | 牌桌 |
+| C→S | `whmj.room.sync` / `ready` / `discard` / `action` / `leave` / `nextRound` | 牌桌（`nextRound` 为结算后手动开下一局） |
 | S→C | `onDeal` `onDraw` `onDiscard` `onTurn` `onAsk` `onActionDone` `onTing` `onSync` `onGameOver` `onRoomState` | 下行事件；`onTing` 带 `tips`，快照带 `tingTips`（`{discard, tiles}`） |
 
 HTTP（前缀 `/whmj-api/`）：`POST /login`、`POST /register`、`GET|POST /profile`、`POST /records`、`GET /plays`。
@@ -156,6 +156,10 @@ cd server && CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o whmj .
 | 中央倒计时改四方位出牌指示：用原版 `xyf/table/time0..3.png`（上/下/左/右各一张，箭头贴方块边指向该家，ADD 混合发光）+ 金色小三角，去掉「轮到你出牌 / 轮到 XX 出牌」文字胶囊；「剩余 N 张」移入方块内 | 通过（真实对局 turn 0/2 与注入 turn 1/3 四个方向截图，光带与箭头均正确定向，`pageerror: 0`） |
 | 左右两家弃牌看不清的修复：原竖向列距 46、横向步长 40，均小于牌面 62×50，导致整列互相压叠；四家牌池重新分区（左右各 3 列 × 4 张、上下各 8 列 × 2 行，列距 52/56、行距 62/68），场景内两两矩形检测重叠对数 **0**；最后一张打出牌放大倍数 2 → 1.5，避免盖住同列邻居；操作按钮组整体左移（`.ops` left 500→380），2~4 个按钮时不再压住右侧牌池 | 通过（注入 16 张弃牌几何检测 0 重叠 + 真实对局截图，四家牌面全部可读；按钮 DOM 实测 540~840，两侧牌池边界 436/870） |
 | 大厅 `onUnload` 报 `TypeError: F.close is not a function`：`socket` 模块只导出 `destroy()`，页面里误调 `socket.close()`；`onUnload` 与 `logout` 两处改为 `socket.destroy()` | 通过（点用户信息触发 `logout` → `reLaunch` 卸载大厅，`pageerror: 0`，正常跳转） |
+| 多种吃法可选：服务端 `CanChi` 本来就按每个顺子首张下发一条 `chi` 选项，前端原来把这些选项一律渲染成「吃」字圆钮，看不出区别；改为牌型卡（上方「吃」字 + 三张具体牌面，被吃那张加金框），点哪张卡就按该牌型的首张发 `action` | 通过（真实对局出现 `三条四条五条` / `四条五条六条` 两种吃法，点第二个：手牌 13→11、服务端返回该顺子的杠选项；注入 3 种吃法截图，按钮 `flex:none` 不被压扁） |
+| 去掉场次概念：房间不再预设「第 x/4 局」，进入即开一局，`maxRound=0` 表示不限；顶栏主行改房号（`底分 1 · 单局结算` 为副行）；结算后不再 4 秒自动开下一局，改由面板「开始下一局」发 `whmj.room.nextRound` | 通过（`room.round` 1→2、手牌重置 13、牌墙重置；结算面板停留 6.5s 未自动开新局，`pageerror: 0`） |
+| 顶栏再精简：删掉左上返回箭头（退出统一走右上 ×），整行只留「房号 ××××××」与「底分 1 · 单局结算」 | 通过（线上截图 `live22_topbar.png`） |
+| 弃牌被压叠：末张放大牌原来以中心对齐、向四周各溢出 12px，压住左右邻居；改为保持视觉左上角不动、只向右下扩展（末张右侧与下方必定无牌），放大倍数 1.5→1.4，去掉压在上家的橙色指针改为双圈描边；同时横排行距 62→64、牌池整体左移 4px，避免放大牌与右家牌池相撞 | 通过（`pond16.png` / `live_pond16.png`：四家各 16 张，56 张牌两两矩形相交检测 0 重叠；真实对局 26 步 `pageerror: 0`） |
 
 ## 7. 已知边界
 

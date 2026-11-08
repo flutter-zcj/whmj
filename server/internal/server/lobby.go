@@ -122,6 +122,7 @@ func (l *Lobby) roomList() []RoomInfo {
 	return out
 }
 
+// onQuickStart 快速开桌：房间不预设局数，一局一结算，下一局由玩家点击开始。
 func (l *Lobby) onQuickStart(session *cproto.Session, req *QuickStartReq) {
 	cfg := game.DefaultConfig()
 
@@ -129,12 +130,7 @@ func (l *Lobby) onQuickStart(session *cproto.Session, req *QuickStartReq) {
 		cfg.Base = req.Base
 	}
 
-	rounds := req.Rounds
-	if rounds <= 0 {
-		rounds = 4
-	}
-
-	l.createAndJoin(session, cfg, rounds)
+	l.createAndJoin(session, cfg, req.Rounds)
 }
 
 func (l *Lobby) onCreateRoom(session *cproto.Session, req *QuickStartReq) {
@@ -144,12 +140,7 @@ func (l *Lobby) onCreateRoom(session *cproto.Session, req *QuickStartReq) {
 		cfg.Base = req.Base
 	}
 
-	rounds := req.Rounds
-	if rounds <= 0 {
-		rounds = 4
-	}
-
-	l.createAndJoin(session, cfg, rounds)
+	l.createAndJoin(session, cfg, req.Rounds)
 }
 
 func (l *Lobby) createAndJoin(session *cproto.Session, cfg game.Config, rounds int) {

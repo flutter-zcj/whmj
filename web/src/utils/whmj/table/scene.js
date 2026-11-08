@@ -56,14 +56,17 @@ const BACK_SIDE = { rightX: 1278, leftX: 30, y: 214, pitch: 28, w: 28, h: 26 }
  * cols × rows 即该家最多同时显示的弃牌数
  */
 const POND = [
-  { axis: 'h', x: 440, y: 456, cols: 8, rows: 2, colStep: 52, rowStep: 62, rot: 0 },
+  { axis: 'h', x: 436, y: 454, cols: 8, rows: 2, colStep: 52, rowStep: 64, rot: 0 },
   { axis: 'v', x: 870, y: 262, cols: 4, rows: 3, colStep: 56, rowStep: 68, rot: 90 },
-  { axis: 'h', x: 440, y: 150, cols: 8, rows: 2, colStep: 52, rowStep: 62, rot: 0 },
-  { axis: 'v', x: 238, y: 262, cols: 4, rows: 3, colStep: 56, rowStep: 68, rot: 90 }
+  { axis: 'h', x: 436, y: 150, cols: 8, rows: 2, colStep: 52, rowStep: 64, rot: 0 },
+  { axis: 'v', x: 234, y: 262, cols: 4, rows: 3, colStep: 56, rowStep: 68, rot: 90 }
 ]
 
 /** 弃牌尺寸（未旋转时），放大后仍保持四家互不重叠 */
 const POND_TILE = { w: 50, h: 62 }
+
+/** 最后一张弃牌的放大倍数，放大方向只朝右下，不侵占邻牌 */
+const POND_LATEST_SCALE = 1.4
 
 /** 副露区：起点、单张显示宽高、是否旋转、是否居中、可用最大宽度 */
 const MELD = [
@@ -674,15 +677,17 @@ export default class TableScene extends Phaser.Scene
           : layout.y + col * layout.colStep + bh / 2
 
         const isLatest = i === list.length - 1 && !!last && last.seat === index
-        const scale = isLatest ? 1.5 : 1
+        const scale = isLatest ? POND_LATEST_SCALE : 1
         const mw = bw * scale
         const mh = bh * scale
         const img = this.makeTile(tileKey(tile), x, y, POND_TILE.w, POND_TILE.h, rot)
 
-        /* 全场最后打出的牌放大并压在最上层，配合橙色指针让对手出牌一眼可见 */
+        // 放大牌保持「视觉左上角」不动，只向右下扩展；
+        // 最后一张牌的下方与右侧必定没有别的弃牌，因此放大后不会压住任何牌面
         if (isLatest)
         {
           img.setDisplaySize(POND_TILE.w * scale, POND_TILE.h * scale)
+          img.setPosition(x + (mw - bw) / 2, y + (mh - bh) / 2)
         }
 
         this.layers.pond.add(img)
@@ -690,23 +695,24 @@ export default class TableScene extends Phaser.Scene
         if (i === list.length - 1)
         {
           const mark = this.add.graphics()
-
-          mark.lineStyle(isLatest ? 3 : 2, isLatest ? 0xFFB020 : 0xFFD75E, isLatest ? 1 : 0.55)
-          mark.strokeRoundedRect(x - mw / 2 - 1, y - mh / 2 - 1, mw + 2, mh + 2, 5)
-          this.layers.pond.add(mark)
+          const bx = img.x - mw / 2
+          const by = img.y - mh / 2
 
           if (isLatest)
           {
-            const pin = this.add.image(x, y - mh / 2 - 20, 'xyf_pointer')
-
-            pin.setDisplaySize(44, 56)
-            this.layers.pond.add(pin)
-            this.tweens.add({ targets: pin, y: pin.y - 6, duration: 620, yoyo: true, repeat: -1, ease: 'Sine.InOut' })
+            /* 双圈描边代替原来压在上家的橙色指针，既有提示又不多占一点空间 */
+            mark.lineStyle(10, 0xFFB020, 0.2)
+            mark.strokeRoundedRect(bx - 6, by - 6, mw + 12, mh + 12, 10)
+            mark.lineStyle(3, 0xFFB020, 1)
           }
           else
           {
-            this.tweens.add({ targets: mark, alpha: { from: 1, to: 0.3 }, duration: 700, yoyo: true, repeat: -1 })
+            mark.lineStyle(2, 0xFFD75E, 0.55)
           }
+
+          mark.strokeRoundedRect(bx - 1, by - 1, mw + 2, mh + 2, 5)
+          this.layers.pond.add(mark)
+          this.tweens.add({ targets: mark, alpha: { from: 1, to: isLatest ? 0.55 : 0.3 }, duration: 700, yoyo: true, repeat: -1 })
         }
       })
     })

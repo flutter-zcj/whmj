@@ -668,7 +668,7 @@ export default
       try
       {
         await this.ensureSocket()
-        const res = await socket.request('whmj.lobby.quickStart', { base: 1, rounds: 4, bots: 3 })
+        const res = await socket.request('whmj.lobby.quickStart', { base: 1, bots: 3 })
 
         socket.setRoom(res.roomId)
         uni.navigateTo({ url: `/pages/whmj/table?roomId=${res.roomId}` })
