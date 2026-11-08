@@ -154,6 +154,8 @@ cd server && CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o whmj .
 | 大厅弹窗层级修复：中间装饰牌 `main__tile--b` 原带 `z-index:2`，会穿透商城/隐私/通知弹窗；给 `.sheet` 补 `z-index:20`、`.dlg` 补 `z-index:30`、`.toast` 补 `z-index:60` | 通过（`elementFromPoint` 命中 `pack__tag`、`topInSheet:true`；截图无穿透） |
 | 手牌赖子常驻显示：`applyState` 在 `laiZi` 缺失时沿用上次值，倒计时每秒刷新也会带上 `laiZi`，修复「只有抓牌瞬间显示、之后消失」 | 通过（场景 `state.laiZi` 与组件一致；注入赖子牌截图见金色「赖」角标+金框） |
 | 中央倒计时改四方位出牌指示：用原版 `xyf/table/time0..3.png`（上/下/左/右各一张，箭头贴方块边指向该家，ADD 混合发光）+ 金色小三角，去掉「轮到你出牌 / 轮到 XX 出牌」文字胶囊；「剩余 N 张」移入方块内 | 通过（真实对局 turn 0/2 与注入 turn 1/3 四个方向截图，光带与箭头均正确定向，`pageerror: 0`） |
+| 左右两家弃牌看不清的修复：原竖向列距 46、横向步长 40，均小于牌面 62×50，导致整列互相压叠；四家牌池重新分区（左右各 3 列 × 4 张、上下各 8 列 × 2 行，列距 52/56、行距 62/68），场景内两两矩形检测重叠对数 **0**；最后一张打出牌放大倍数 2 → 1.5，避免盖住同列邻居 | 通过（注入 16 张弃牌几何检测 0 重叠 + 真实对局截图，四家牌面全部可读） |
+| 大厅 `onUnload` 报 `TypeError: F.close is not a function`：`socket` 模块只导出 `destroy()`，页面里误调 `socket.close()`；`onUnload` 与 `logout` 两处改为 `socket.destroy()` | 通过（点用户信息触发 `logout` → `reLaunch` 卸载大厅，`pageerror: 0`，正常跳转） |
 
 ## 7. 已知边界
 

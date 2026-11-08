@@ -56,10 +56,10 @@ const BACK_SIDE = { rightX: 1278, leftX: 30, y: 214, pitch: 28, w: 28, h: 26 }
  * cols × rows 即该家最多同时显示的弃牌数
  */
 const POND = [
-  { axis: 'h', x: 398, y: 466, cols: 11, rows: 2, colStep: 44, rowStep: 54, rot: 0 },
-  { axis: 'v', x: 950, y: 282, cols: 6, rows: 3, colStep: 46, rowStep: 40, rot: 90 },
-  { axis: 'h', x: 398, y: 150, cols: 11, rows: 2, colStep: 44, rowStep: 54, rot: 0 },
-  { axis: 'v', x: 250, y: 282, cols: 6, rows: 3, colStep: 46, rowStep: 40, rot: 90 }
+  { axis: 'h', x: 440, y: 456, cols: 8, rows: 2, colStep: 52, rowStep: 62, rot: 0 },
+  { axis: 'v', x: 870, y: 262, cols: 4, rows: 3, colStep: 56, rowStep: 68, rot: 90 },
+  { axis: 'h', x: 440, y: 150, cols: 8, rows: 2, colStep: 52, rowStep: 62, rot: 0 },
+  { axis: 'v', x: 238, y: 262, cols: 4, rows: 3, colStep: 56, rowStep: 68, rot: 90 }
 ]
 
 /** 弃牌尺寸（未旋转时），放大后仍保持四家互不重叠 */
@@ -674,8 +674,7 @@ export default class TableScene extends Phaser.Scene
           : layout.y + col * layout.colStep + bh / 2
 
         const isLatest = i === list.length - 1 && !!last && last.seat === index
-        /* 别人刚打出的牌在对应方位放大到约 2 倍，一眼能看到出了什么 */
-        const scale = isLatest ? 2 : 1
+        const scale = isLatest ? 1.5 : 1
         const mw = bw * scale
         const mh = bh * scale
         const img = this.makeTile(tileKey(tile), x, y, POND_TILE.w, POND_TILE.h, rot)

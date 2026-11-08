@@ -548,7 +548,7 @@ export default
       this.toastTimer = null
     }
 
-    socket.close()
+    socket.destroy()
   },
 
   methods:
@@ -851,7 +851,7 @@ export default
     {
       audio.play('click')
       clearAuth()
-      socket.close()
+      socket.destroy()
       uni.reLaunch({ url: '/pages/whmj/login' })
     }
   }
