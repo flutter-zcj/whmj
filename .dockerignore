@@ -1,0 +1,10 @@
+.git
+node_modules
+**/node_modules
+web/dist
+**/dist
+screenshots
+docs
+tools
+README.md
+deploy

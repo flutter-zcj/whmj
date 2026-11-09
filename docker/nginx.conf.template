@@ -1,0 +1,74 @@
+# 武汉赖子麻将 nginx 模板：对外只开一个端口，前端静态站点与后端接口同源
+# ${PORT} 由容器 entrypoint 用 envsubst 替换
+
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+
+server {
+    listen ${PORT} default_server;
+    server_name _;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    client_max_body_size 20m;
+
+    gzip on;
+    gzip_min_length 1024;
+    gzip_comp_level 5;
+    gzip_types text/plain text/css application/javascript application/json image/svg+xml audio/mpeg application/octet-stream;
+
+    location = / {
+        return 302 /whmj/;
+    }
+
+    location = /whmj {
+        return 301 /whmj/;
+    }
+
+    # 前端静态站点（uni-app H5，index.html 走 SPA 回退）
+    location ^~ /whmj/ {
+        try_files $uri $uri/ /whmj/index.html;
+        add_header Cache-Control "no-cache";
+    }
+
+    # 静态资源长缓存
+    location ^~ /whmj/static/ {
+        try_files $uri =404;
+        expires 30d;
+        add_header Cache-Control "public, max-age=2592000";
+    }
+
+    # HTTP 接口（服务端 127.0.0.1:9110）
+    location ^~ /whmj-api/ {
+        proxy_pass http://127.0.0.1:9110/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 120s;
+    }
+
+    # WebSocket 长连接（cherry 网关 127.0.0.1:9111）
+    location ^~ /whmj-ws/ {
+        proxy_pass http://127.0.0.1:9111/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+        proxy_buffering off;
+    }
+
+    # 健康检查
+    location = /health {
+        proxy_pass http://127.0.0.1:9110/health;
+        access_log off;
+    }
+}
