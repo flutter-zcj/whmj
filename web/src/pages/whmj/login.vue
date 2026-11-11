@@ -7,20 +7,20 @@ $danger: #FF7A6B;
 .page { position: relative; display: flex; flex-direction: row; align-items: center; justify-content: space-around; width: 100%; height: 100%; overflow: hidden; box-sizing: border-box; background: #2C6EA8; }
 .page__bg { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
 .page__veil { position: absolute; left: 0; top: 0; width: 100%; height: 100%; background: linear-gradient(90deg, rgba(8, 34, 52, 0.42) 0%, rgba(8, 34, 52, 0.08) 46%, rgba(8, 34, 52, 0.5) 100%); }
-.brand { position: relative; display: flex; flex-direction: column; align-items: center; z-index: 2; }
-.brand__art { position: relative; width: 420rpx; height: 172rpx; filter: drop-shadow(0 6rpx 20rpx rgba(255, 160, 60, 0.45)); animation: float 3.2s ease-in-out infinite; }
+.brand { position: relative; flex: 1 1 0; display: flex; flex-direction: column; align-items: center; min-width: 0; z-index: 2; }
+.brand__art { position: relative; max-width: 100%; width: 420rpx; height: 172rpx; filter: drop-shadow(0 6rpx 20rpx rgba(255, 160, 60, 0.45)); animation: float 3.2s ease-in-out infinite; }
 @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10rpx); } }
 .brand__row { position: relative; display: flex; flex-direction: row; align-items: center; margin-top: 26rpx; }
 .brand__mark { position: relative; display: flex; align-items: center; justify-content: center; width: 110rpx; height: 110rpx; background: linear-gradient(150deg, #48C083 0%, #12965E 100%); border: 4rpx solid rgba(255, 255, 255, 0.9); border-radius: 30rpx; box-shadow: 0 14rpx 32rpx rgba(0, 0, 0, 0.5), inset 0 4rpx 0 rgba(255, 255, 255, 0.35); }
 .brand__tile { position: relative; font-size: 56rpx; font-weight: 700; color: #FFF8E2; text-shadow: 0 4rpx 10rpx rgba(0, 60, 36, 0.45); }
 .brand__title { position: relative; margin-left: 20rpx; font-family: 'MJ Kai', 'PingFang SC', serif; font-size: 62rpx; font-weight: 700; letter-spacing: 10rpx; color: $gold; text-shadow: 0 0 24rpx rgba(240, 184, 86, 0.55), 0 4rpx 0 rgba(90, 40, 0, 0.65); }
 .brand__sub { position: relative; margin-top: 20rpx; padding: 8rpx 30rpx; font-size: 24rpx; font-weight: 600; color: #6B3A05; letter-spacing: 8rpx; background: linear-gradient(180deg, #FFF6DC 0%, #FFDF9C 100%); border: 2rpx solid rgba(255, 255, 255, 0.85); border-radius: 24rpx; box-shadow: 0 8rpx 20rpx rgba(0, 0, 0, 0.45); }
-.form { position: relative; display: flex; flex-direction: column; width: 520rpx; box-sizing: border-box; padding: 40rpx 36rpx 30rpx; background: $glass; border: 1rpx solid $gold-line; border-radius: 28rpx; box-shadow: 0 24rpx 60rpx rgba(0, 0, 0, 0.55), inset 0 1rpx 0 rgba(255, 233, 174, 0.18); z-index: 2; }
+.form { position: relative; flex: none; display: flex; flex-direction: column; width: 520rpx; box-sizing: border-box; padding: 40rpx 36rpx 30rpx; background: $glass; border: 1rpx solid $gold-line; border-radius: 28rpx; box-shadow: 0 24rpx 60rpx rgba(0, 0, 0, 0.55), inset 0 1rpx 0 rgba(255, 233, 174, 0.18); z-index: 2; }
 .field { position: relative; display: flex; flex-direction: row; align-items: center; width: 100%; height: 96rpx; margin-bottom: 20rpx; box-sizing: border-box; padding: 0 26rpx; background: rgba(0, 0, 0, 0.3); border: 1rpx solid rgba(255, 216, 138, 0.3); border-radius: 20rpx; }
 .field--focus { position: relative; display: flex; flex-direction: row; align-items: center; width: 100%; height: 96rpx; margin-bottom: 20rpx; box-sizing: border-box; padding: 0 26rpx; background: rgba(0, 0, 0, 0.42); border: 2rpx solid #F0B856; border-radius: 20rpx; box-shadow: 0 0 20rpx rgba(240, 184, 86, 0.3); }
 .field__label { position: relative; flex-shrink: 0; width: 96rpx; font-size: 27rpx; font-weight: 600; color: $gold; }
 .field__input { position: relative; flex: 1; height: 56rpx; font-size: 29rpx; color: $cream; }
-.field__placeholder { position: relative; font-size: 26rpx; color: rgba(255, 243, 214, 0.35); }
+.field__placeholder { position: absolute; left: 0; bottom: 0; width: 100%; height: 100%; font-size: 26rpx; line-height: 56rpx; color: rgba(255, 243, 214, 0.42); }
 .field__action { position: relative; flex-shrink: 0; margin-left: 16rpx; font-size: 23rpx; color: $gold; }
 .submit { position: relative; display: flex; align-items: center; justify-content: center; width: 100%; height: 96rpx; margin-top: 14rpx; font-size: 33rpx; font-weight: 700; color: #6B3A05; letter-spacing: 8rpx; background: linear-gradient(180deg, #FFF3CE 0%, #FFCE5C 46%, #F0A020 100%); border: 3rpx solid rgba(255, 255, 255, 0.9); border-radius: 48rpx; box-shadow: 0 8rpx 0 #B07E20, 0 16rpx 30rpx rgba(0, 0, 0, 0.5); }
 .submit--active { position: relative; display: flex; align-items: center; justify-content: center; width: 100%; height: 96rpx; margin-top: 14rpx; font-size: 33rpx; font-weight: 700; color: #6B3A05; letter-spacing: 8rpx; background: #F5B940; border: 3rpx solid rgba(255, 255, 255, 0.9); border-radius: 48rpx; box-shadow: 0 4rpx 0 #B07E20; }
