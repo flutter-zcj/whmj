@@ -9,3 +9,8 @@ web/static/
 
 # 原版反编译脚本仅作本地规则比对，不入库
 docs/reference/
+
+# 沙箱发布目录：二进制与静态资源为构建产物，只保留网关脚本
+deploy/sandbox/whmj/
+deploy/sandbox/whmj-server
+deploy/sandbox/config/

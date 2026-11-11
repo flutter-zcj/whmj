@@ -163,6 +163,8 @@ cd server && CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o whmj .
 | 副露（吃碰杠）归位：原来四家的面子都横排在各自牌池上方，与弃牌挤在一起，自己的一排还压着手牌；改为各靠各家一侧——自己左下角手牌上方横排、对家顶部居中横排、左右两家各自靠边竖排成方阵，并修正副露整体缩放时步长与总宽算法不一致导致的右侧溢出 | 通过（真实对局 `meld_live_mid.png`：左家/右家竖排、对家/自己横排，56 张副露与 56 张弃牌矩形相交检测 0 重叠） |
 | 房间等待页：创建房间不再直接补 3 个机器人开局，改为进入独立房间页（横屏 1334×750）：显示房号与四个座位，房主可点空位「+」添加电脑、点「开始游戏」开局（空位自动补电脑），其他玩家凭房号入座后可一起开局；服务端新增 `room.addBot` / `room.start`，`onReady` 不再自动开局，房主离开时房主身份自动转移 | 通过（双人验收 `live_room_two_*`：A 建房加 1 电脑，B 凭房号坐进空位，A 开局后两端同时进入牌桌，`pageerror: 0`） |
 | 登录/注册页输入框提示文字被裁：`.field__placeholder` 写了 `position: relative`，把 uni-app 自带的 `.uni-input-placeholder { position: absolute }` 顶掉，占位文字变成 flex 纵向流内元素、高度被压到 24px 而 `overflow: hidden`，上下各裁掉约 9px；改为 `position: absolute; left: 0; bottom: 0; width: 100%; height: 100%` 并令 `line-height` 与输入框等高（56rpx），同时给 `.form` 加 `flex: none` 锁回 520rpx 设计宽度（原先会被左侧品牌区挤到 271px，占位文字横向也被截） | 通过（`login_diag_square.png` / `login_reg_sq.png`：794×794 下三个占位文字完整、垂直居中，占位盒 314×59 与 `scrollWidth` 一致；667×375 横屏同样完整） |
+| 登录页窄屏挤压：`794×794` 下左侧品牌区只剩约 210px，副标「红中赖子杠 · 二五八将」由一行挤成 4 行、登录卡片右侧贴边；改为页面左右各留 12rpx、副标 `white-space: nowrap` 并用 `clamp(15px, 2.2vw, 34px)` 自适应字号，卡片 `flex: none` 保持 520rpx | 通过（`pub5_login_sq.png` / `online_login.png`：副标单行、与卡片间距 7px 不重叠，卡片左右各留 13px） |
+| 备用发布通道：华为云主机不可达期间，用 `deploy/sandbox/server.js` 单端口网关（`/whmj/` 静态 + `/whmj-api/` 转 9110 + `/whmj-ws/` 原样管道到 9111）把整套服务发布到沙箱，作为临时可访问环境 | 通过（线上链接游客登录 → 建房 → 开局全链路，`pageerror: 0`） |
 
 ## 7. 已知边界
 
