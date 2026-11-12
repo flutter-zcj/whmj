@@ -5,6 +5,7 @@
  */
 import './protocol.js'
 import './pomelo.js'
+import { relogin, getToken } from './http.js'
 
 /** 连接超时时间，单位毫秒 */
 const CONNECT_TIMEOUT = 10000
@@ -58,6 +59,7 @@ class MahjongSocket
     this.wasDown = false
     this.bound = false
     this.silent = false
+    this.reloginTried = false
   }
 
   /**
@@ -68,6 +70,8 @@ class MahjongSocket
   connect(token)
   {
     this.destroy()
+
+    this.reloginTried = false
 
     return this.open(token)
   }
@@ -148,6 +152,33 @@ class MahjongSocket
           {
             this.connected = false
 
+            // 令牌失效时先用本地记住的账号自动重登，拿到新令牌后再连一次
+            if (res && (res.code === 401 || res.code === 403) && !this.reloginTried)
+            {
+              this.reloginTried = true
+
+              if (this.opening === task)
+              {
+                this.opening = null
+              }
+
+              relogin().then((user) =>
+              {
+                this.token = (user && user.token) || getToken()
+
+                return this.open(this.token)
+              }).then(resolve, (err) =>
+              {
+                // 自动重登也失败，才判定登录彻底失效，交给页面回登录页
+                this.token = ''
+                this.closedByUser = true
+                this.emitLocal('expired', err)
+                reject(new Error((err && err.message) || '登录状态已失效'))
+              })
+
+              return
+            }
+
             // 令牌失效就没必要继续重试了，交给页面回到登录页
             if (res && (res.code === 401 || res.code === 403))
             {
@@ -159,6 +190,8 @@ class MahjongSocket
             reject(new Error((res && res.msg) || '登录状态已失效'))
             return
           }
+
+          this.reloginTried = false
 
           this.uid = res.uid || 0
           this.nick = res.nick || ''

@@ -75,6 +75,8 @@ WebSocket（cherry pomelo，JSON 序列化），路由前缀即节点类型 `whm
 
 HTTP（前缀 `/whmj-api/`）：`POST /login`、`POST /register`、`GET|POST /profile`、`POST /records`、`GET /plays`。
 
+登录态与自动重登：令牌存 `zbcx_mj_token`，登录/注册成功时另把账号密码（XOR + base64 混淆，不落明文）记到 `zbcx_mj_cred`。任意接口返回 401 时 `utils/whmj/http.js` 的 `request()` 会调 `relogin()` 用本地凭据静默登录一次，成功后把原请求重放一遍；长连接 `whmj.gate.auth` 返回 401 时 `socket.js` 同样先重登换新令牌再重连（`connect()` 内重试一次）。服务端内存库重启导致游客账号丢失时，按原凭据重建同名游客；只有重登也失败才回登录页。退出登录会同时清掉令牌与凭据。
+
 ## 4. 本地开发
 
 ```bash
@@ -165,6 +167,7 @@ cd server && CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o whmj .
 | 登录/注册页输入框提示文字被裁：`.field__placeholder` 写了 `position: relative`，把 uni-app 自带的 `.uni-input-placeholder { position: absolute }` 顶掉，占位文字变成 flex 纵向流内元素、高度被压到 24px 而 `overflow: hidden`，上下各裁掉约 9px；改为 `position: absolute; left: 0; bottom: 0; width: 100%; height: 100%` 并令 `line-height` 与输入框等高（56rpx），同时给 `.form` 加 `flex: none` 锁回 520rpx 设计宽度（原先会被左侧品牌区挤到 271px，占位文字横向也被截） | 通过（`login_diag_square.png` / `login_reg_sq.png`：794×794 下三个占位文字完整、垂直居中，占位盒 314×59 与 `scrollWidth` 一致；667×375 横屏同样完整） |
 | 登录页窄屏挤压：`794×794` 下左侧品牌区只剩约 210px，副标「红中赖子杠 · 二五八将」由一行挤成 4 行、登录卡片右侧贴边；改为页面左右各留 12rpx、副标 `white-space: nowrap` 并用 `clamp(15px, 2.2vw, 34px)` 自适应字号，卡片 `flex: none` 保持 520rpx | 通过（`pub5_login_sq.png` / `online_login.png`：副标单行、与卡片间距 7px 不重叠，卡片左右各留 13px） |
 | 备用发布通道：华为云主机不可达期间，用 `deploy/sandbox/server.js` 单端口网关（`/whmj/` 静态 + `/whmj-api/` 转 9110 + `/whmj-ws/` 原样管道到 9111）把整套服务发布到沙箱，作为临时可访问环境 | 通过（线上链接游客登录 → 建房 → 开局全链路，`pageerror: 0`） |
+| 登录失效自动重登：登录/注册成功写 `zbcx_mj_cred`（XOR+base64），接口 401 与 `gate.auth` 401 都会先 `relogin()` 再重放请求 / 重连回房，玩家不用重新输密码；服务端内存库重启丢游客账号时按原凭据重建同名游客；退出登录清凭据 | 通过（把 `zbcx_mj_token` 改成 `deadbeef` 后刷新：大厅与房间页均自动换新令牌、`uid` 不变、未跳登录页；重启服务端后同名游客 `guest842130` 自动重建；手动打开登录页会自动登录跳回大厅；`localStorage.clear()` 后停在登录页等输入） |
 
 ## 7. 已知边界
 

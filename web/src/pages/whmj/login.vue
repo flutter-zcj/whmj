@@ -131,10 +131,11 @@ $danger: #FF7A6B;
 /**
  * 修改时间       人员        说明
  * 2026/11/03     郑朝军      初始创建，接入麻将系统账号接口
+ * 2026/11/12     郑朝军      有本地凭据时自动登录，免去重复输密码
  */
 import { ASSET_BASE } from '@/utils/whmj/const.js'
 import { login, register } from '@/utils/whmj/api.js'
-import { getToken } from '@/utils/whmj/http.js'
+import { getToken, getCredential, relogin } from '@/utils/whmj/http.js'
 
 export default
 {
@@ -181,9 +182,25 @@ export default
 
   onLoad()
   {
+    const credential = getCredential()
+
+    if (credential)
+    {
+      this.userName = credential.userName
+      this.password = credential.password
+    }
+
     if (getToken())
     {
       uni.reLaunch({ url: '/pages/whmj/index' })
+
+      return
+    }
+
+    /** 有历史账号就直接自动重登一遍，玩家不用重新输密码 */
+    if (credential)
+    {
+      this.autoLogin()
     }
   },
 
@@ -193,6 +210,33 @@ export default
     nativeImg(name)
     {
       return `${ASSET_BASE}/ui/native/${name}.png`
+    },
+
+    /** 用本地记住的账号静默登录，成功直接进大厅 */
+    async autoLogin()
+    {
+      if (this.loading)
+      {
+        return
+      }
+
+      this.loading = true
+      this.tipText = '正在自动登录…'
+
+      try
+      {
+        await relogin()
+
+        uni.reLaunch({ url: '/pages/whmj/index' })
+      }
+      catch (err)
+      {
+        this.tipText = '自动登录失败，请确认密码后重试'
+      }
+      finally
+      {
+        this.loading = false
+      }
     },
 
     /** 游客试玩：随机账号自动注册并进入 */

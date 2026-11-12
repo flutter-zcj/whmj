@@ -337,10 +337,11 @@ $line: rgba(255, 214, 140, 0.45);
  * 修改时间       人员        说明
  * 2026/11/06     郑朝军      初始创建
  * 2026/11/07     郑朝军      改用原版 UI 素材重做大厅，拆分建桌与入房
+ * 2026/11/12     郑朝军      首屏改用本地凭据自动登录，退出登录同时忘掉凭据
  */
 import { ASSET_BASE } from '@/utils/whmj/const.js'
-import { login, register, fetchProfile, fetchRecords } from '@/utils/whmj/api.js'
-import { clearAuth, getToken, getUser, setUser } from '@/utils/whmj/http.js'
+import { ensureSession, fetchProfile, fetchRecords } from '@/utils/whmj/api.js'
+import { clearAuth, clearCredential, getToken, getUser, setUser } from '@/utils/whmj/http.js'
 import socket from '@/utils/whmj/socket.js'
 import audio from '@/utils/whmj/audio.js'
 
@@ -592,15 +593,12 @@ export default
       this.uiTop = Math.round((ch - 750 * scale) / 2)
     },
 
-    /** 首屏引导：无登录态先游客注册，再拉资料 */
+    /** 首屏引导：本地凭据自动登录（无凭据才新建游客），再拉资料 */
     async bootstrap()
     {
       try
       {
-        if (!getToken())
-        {
-          await this.guestLogin()
-        }
+        await ensureSession()
 
         await this.loadProfile()
         await this.ensureSocket()
@@ -608,21 +606,6 @@ export default
       catch (err)
       {
         this.toast(err.message || '网络异常，请稍后重试')
-      }
-    },
-
-    /** 游客自动注册并登录 */
-    async guestLogin()
-    {
-      const name = `guest${Math.floor(Math.random() * 900000 + 100000)}`
-
-      try
-      {
-        await register(name, '123456', `游客${name.slice(-4)}`)
-      }
-      catch (err)
-      {
-        await login(name, '123456')
       }
     },
 
@@ -844,11 +827,12 @@ export default
       }, 1800)
     },
 
-    /** 退出登录并回到登录页 */
+    /** 退出登录并回到登录页，同时忘掉本地凭据，避免又被自动登录回来 */
     logout()
     {
       audio.play('click')
       clearAuth()
+      clearCredential()
       socket.destroy()
       uni.reLaunch({ url: '/pages/whmj/login' })
     }
