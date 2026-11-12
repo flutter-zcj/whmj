@@ -158,10 +158,22 @@ export default
         cancelAnimationFrame(this.rafId)
         this.rafId = requestAnimationFrame(() =>
         {
-          setForcedRotation(0)
-          setTimeout(() => setForcedRotation(0), 120)
+          this.applyRotation()
+          setTimeout(() => this.applyRotation(), 120)
         })
       })
+    },
+
+    /**
+     * 同步「容器是否被旋转」给 Phaser：
+     * 全局横屏在竖屏时会把 uni-app 根元素顺时针转 90°，触摸坐标必须按同一角度做逆变换，
+     * 否则点手牌/点按钮全部错位（竖屏下表现为「点不动、出不了牌」）。
+     */
+    applyRotation()
+    {
+      const deg = window.innerHeight > window.innerWidth ? 90 : 0
+
+      setForcedRotation(deg)
     },
 
     /** 首次触摸页面时尝试全屏：浏览器要求全屏必须发生在用户手势里 */
