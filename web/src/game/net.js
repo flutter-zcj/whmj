@@ -53,8 +53,16 @@ function unpack(data) {
 }
 
 function buildUrl() {
+  return gdWsUrl();
+}
+
+/** 联机地址：同域走网关 /gd-ws/，本地开发直连 9120 */
+export function gdWsUrl() {
+  if (typeof location === 'undefined') return 'ws://127.0.0.1:9120/';
   const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-  // 由统一网关分流：/gd-ws/ 管道到掼蛋服务端（本地开发同样走该前缀）
+  const isLocal = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+  // 3000 端口是本地网关，其余本地端口视为直接调服务端
+  if (isLocal && location.port !== '3000') return 'ws://127.0.0.1:9120/';
   return proto + '//' + location.host + '/gd-ws/';
 }
 

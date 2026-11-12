@@ -118,7 +118,10 @@ export function startGame(parent, hooks = {}) {
 
   game.events.once('ready', () => {
     const sc = game.scene.getScene('guandan');
-    if (sc && hooks.onExit) sc.onExit = hooks.onExit;
+    if (sc) {
+      if (hooks.onExit) sc.onExit = hooks.onExit;
+      if (hooks.onWaiting) sc.onWaiting = hooks.onWaiting;
+    }
     // 启动时舞台可能刚被旋转过，按当前尺寸重算一次，避免画面只占屏幕一角
     setForcedRotation(rotDeg);
     positionCanvas();

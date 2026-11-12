@@ -61,6 +61,34 @@
           "bounce": "none"
         }
       }
+    },
+    {
+      "name": "gdRoom",
+      "path": "pages/gd/room",
+      "style": {
+        "navigationBarTitleText": "掼蛋房间",
+        "navigationStyle": "custom",
+        "h5": {
+          "titleNView": false
+        },
+        "app-plus": {
+          "bounce": "none"
+        }
+      }
+    },
+    {
+      "name": "gdTable",
+      "path": "pages/gd/table",
+      "style": {
+        "navigationBarTitleText": "掼蛋牌桌",
+        "navigationStyle": "custom",
+        "h5": {
+          "titleNView": false
+        },
+        "app-plus": {
+          "bounce": "none"
+        }
+      }
     }
   ],
   "globalStyle": {

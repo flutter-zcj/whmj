@@ -19,7 +19,7 @@
 whmj/
 ├── web/                        前端（基于 flutter-zcj/prjtmpl 模板工程）
 │   ├── src/pages/whmj/         login.vue 登录 · index.vue 大厅 · room.vue 房间 · table.vue 牌桌
-│   ├── src/pages/gd/           掼蛋页面（挂 Phaser 场景 + 竖屏强制横屏）
+│   ├── src/pages/gd/           掼蛋页面（room.vue 房间选人 · table.vue 牌桌 · index.vue 旧链接跳转）
 │   ├── src/game/               掼蛋游戏层：engine(规则/提示/AI/状态机) · scenes · ui · net · audio · textures
 │   ├── src/static/game/        掼蛋原版美术与音效（271 个文件：牌面/桌面/按钮/120 条音效）
 │   ├── src/utils/whmj/         api/http/socket/pomelo/protocol/audio/const/table(scene.js)
@@ -94,8 +94,9 @@ HTTP（前缀 `/whmj-api/`）：`POST /login`、`POST /register`、`GET|POST /pr
 | S→C | 100 joined · 101 sync · 102 settle · 103 error · 104 pong · 105 hello · 106 left | 全量同步/结算/错误 |
 
 > 掼蛋不校验麻将令牌：进房用昵称 + `mj{uid}` 作为重连标识，未登录也能玩（用随机游客名）。
-> 大厅点「掼蛋」→ `pages/gd/index?create=1` → 服务端分配 6 位房号 → 等待层加电脑或等好友 → 开始。
-> 刷新页面按 `sessionStorage.gd_room` 回到原座位；分享链接形如 `?room=123456#/pages/gd/index`。
+> 大厅点「掼蛋」→ `pages/gd/room?create=1` → 服务端分配 6 位房号 → 房间页（与麻将房间同一套选人布局）加电脑或等好友 → 坐满后房主开局 → `pages/gd/table`。
+> 房间页与牌桌页各自建连，同一 `mj{uid}` 在服务端是同一个座位；等待中掉线有 `OfflineMS`（默认 60s）宽限，页面切换不会掉座。
+> 刷新页面按 `sessionStorage.gd_room` 回到原座位；分享链接形如 `#/pages/gd/room?room=123456`（也兼容旧的 `?room=123456#/pages/gd/room`）。
 
 登录态与自动重登：令牌存 `zbcx_mj_token`，登录/注册成功时另把账号密码（XOR + base64 混淆，不落明文）记到 `zbcx_mj_cred`。任意接口返回 401 时 `utils/whmj/http.js` 的 `request()` 会调 `relogin()` 用本地凭据静默登录一次，成功后把原请求重放一遍；长连接 `whmj.gate.auth` 返回 401 时 `socket.js` 同样先重登换新令牌再重连（`connect()` 内重试一次）。服务端内存库重启导致游客账号丢失时，按原凭据重建同名游客；只有重登也失败才回登录页。退出登录会同时清掉令牌与凭据。
 
@@ -213,6 +214,9 @@ node /root/.codebuddy/skills/sites/scripts/publish.js --dir /workspace/whmj/depl
 | 掼蛋双人联机：A 建房、B 用 `?room=` 链接进同一房 → 房主加 2 电脑 → 开局，两端各自视角把自己排 0 号位 | 通过（同房 `727074`，两端各 27 张，座位名与出牌提示互相同步，`pageerror: 0`） |
 | 掼蛋移动端竖屏：舞台整体旋转 90° 变横屏；原 `scale.refresh()` 不重算 `parentSize`，画面只占屏幕一角（390 宽），补 `scale.setParentSize(舞台宽高)` 后铺满 | 通过（390×844 下 display 由 390×219 变 693×390，`rotated:true`，加电脑开局后手牌 27 张） |
 | 掼蛋刷新回房：房号存 `sessionStorage.gd_room`，刷新按房号重连回原座位（大厅重新进则新建房） | 通过（房号 `991289` 刷新后仍在同房等待层，昵称不变） |
+| 掼蛋选人页改版：原来进房就是 Phaser 横屏等待层，且与全局横屏叠加成二次旋转；拆成 `gd/room`（Vue，复用麻将房间的房号 + 四座位 + 加电脑 + 开始布局）与 `gd/table`（Phaser 牌桌，去掉页内旋转、画布铺满、点开始即全屏并锁横屏）两页 | 通过（1280×820：房间页 `游客5323/房主` + 电脑1..3，开局后 `canvas 1280×720`、22 张手牌；390×844：`uni-app rotate(90deg)` + 舞台 844×390、画布 693×390 铺满，`pageerror: 0`） |
+| 掼蛋双人同房（新版）：A 建房 → B 用 `#/pages/gd/room?room=` 邀请链接入座并显示「等待房主」→ 房主补 2 电脑 → 开局，两端各自视角 0 号位 | 通过（同房 `660056`：A 手牌 22 / B 手牌 27，座位名互相同步，`pageerror: 0`） |
+| 掼蛋页面切换掉座：房间页 `redirectTo` 牌桌时会重建连接，服务端原来在等待态立刻清座，可能把刚开局的房间拆散；改为等待态也走 `OfflineMS` 宽限（重连即恢复座位），宽限期到才清座 | 通过（`room_test.go` 三个用例：宽限内保留/重连复位/满座才可开局；实机开房→开局不掉座） |
 | 公网发布后 `/profile`、`/records` 恒 401：平台网关给每个请求塞自己的 `Authorization: Bearer <JWT>`，把客户端令牌覆盖掉（网关日志 `auth=Bearer eyJhbGciO…`），`auth()` 原来优先取请求头因而取错令牌；改为客户端把令牌同时拼进 `?token=`、服务端 `HTTP.auth` 优先读查询参数（直连 nginx 仍可用请求头） | 通过（公网同一令牌：`?token=` 200、`Authorization` 401；实机游客进入后页头显示 `游客6392 / ID 4`（修复前是 `游客 / ID 0`），建房 → 加 2 电脑 → 开局牌桌正常，`pageerror: 0`） |
 
 ## 7. 已知边界

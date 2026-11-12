@@ -351,9 +351,10 @@ func (r *Room) Offline(seat int) {
 		r.tick()
 		return
 	}
-	r.Players[seat] = nil
-	r.ensureHost()
+	// 等待中：保留座位并给一个重连宽限期。
+	// 客户端在「房间页 → 牌桌页」之间切换时会重建连接，立即踢座会把刚开局的房间拆散。
 	r.SyncAll()
+	r.scheduleTimer(TimerOffline+strconv.Itoa(seat), r.cfg.OfflineMS)
 }
 
 /* ---------------- 开局 ---------------- */
@@ -638,6 +639,14 @@ func (r *Room) FireTimer(evt TimerEvent) {
 		}
 	default:
 		if len(evt.Kind) > 7 && evt.Kind[:7] == TimerOffline {
+			// 宽限期到：仍在离线的真人座位清掉，房主顺延
+			if seat, err := strconv.Atoi(evt.Kind[7:]); err == nil && seat >= 0 && seat < 4 {
+				if p := r.Players[seat]; p != nil && p.Human && !p.Online && p.SID == "" {
+					r.Players[seat] = nil
+					r.ensureHost()
+					r.SyncAll()
+				}
+			}
 			if r.Status != StatusPlaying && r.HumanCount() == 0 {
 				r.Destroy()
 			}

@@ -752,12 +752,12 @@ export default
       await this.quickStart()
     },
 
-    /** 进入掼蛋：先建房进等待厅，加电脑或等好友，再开局 */
+    /** 进入掼蛋：先进房间页选人（加电脑或等好友），坐满后开局 */
     enterGuandan()
     {
       audio.play('click')
       this.sheet = ''
-      uni.navigateTo({ url: '/pages/gd/index?create=1' })
+      uni.navigateTo({ url: '/pages/gd/room?create=1' })
     },
 
     /**

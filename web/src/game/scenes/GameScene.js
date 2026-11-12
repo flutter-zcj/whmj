@@ -11,7 +11,6 @@ import AI from '../engine/ai.js';
 import TEX from '../textures.js';
 import GdAudio, { preloadAudio } from '../audio.js';
 import Net from '../net.js';
-import WaitRoom from '../ui/WaitRoom.js';
 
 const W = 1280, H = 720;
 
@@ -74,6 +73,7 @@ export default class GuandanScene extends Phaser.Scene {
     this._dbg = { Rule, HintFinder, CardLib };  // 调试/自动化测试用
     this.level = this.table.levelOf(0);
     this.settle = null;
+    this.waiting = false;
     this.panel = null;
 
     this.buildTextures();
@@ -95,15 +95,6 @@ export default class GuandanScene extends Phaser.Scene {
     this.buildInfo();
     this.buildButtons();
     this.buildHandInput();
-
-    // 房间等待层（联机未开局时显示）
-    this.waitRoom = new WaitRoom(this, {
-      onCopy: () => this.copyInvite(),
-      onAddBot: () => { if (this.audio) this.audio.uiClick(); this.net.addBot(); },
-      onRemoveBot: (seat) => { if (this.audio) this.audio.uiClick(); this.net.removeBot(seat); },
-      onStart: () => { if (this.audio) this.audio.uiClick(); this.net.start(); },
-      onExit: () => { if (this.audio) this.audio.uiClick(); if (this.onExit) this.onExit(); }
-    });
 
     this.events.once('shutdown', () => { if (this.net) this.net.close(); });
 
@@ -221,7 +212,7 @@ export default class GuandanScene extends Phaser.Scene {
     // 关键：进入 playing 必须清掉上一局的结算标记，
     // 否则 updateButtons 会一直判定「已结算」而隐藏三个操作按钮（第二局按钮消失的根因）
     this.settle = null;
-    if (this.waitRoom && this.waitRoom.visible) this.waitRoom.hide();
+    this.waiting = false;
 
     if (m.status === 'settled') {
       // 结算面板由 settle 消息驱动；若是重连后收到，补一个面板
@@ -233,34 +224,13 @@ export default class GuandanScene extends Phaser.Scene {
     this.renderAll();
   }
 
-  /** 房间等待态渲染 */
+  /** 房间回到等待态：选人/加电脑交给房间页，这里只通知页面切回去 */
   enterWaiting(m) {
-    const mySrv = (this.net && this.net.seat >= 0) ? this.net.seat : 0;
-    const map = this.viewMap || [0, 1, 2, 3];
-    const seats = [0, 1, 2, 3].map((v) => {
-      const srv = map[v];
-      const s = m.seats[srv] || {};
-      return {
-        seat: srv,
-        name: s.name || '',
-        empty: !!s.empty,
-        bot: !!s.bot,
-        host: !!s.host,
-        online: !!s.online
-      };
-    });
-    this.txtRound.setText('等待开局');
-    this.txtLevelInfo.setText('');
-    this.txtCenter.setText('');
-    this.txtRoom.setText('房间 ' + m.room);
-    if (this.waitRoom) {
-      this.waitRoom.show({
-        room: m.room,
-        seats,
-        isHost: !!(m.seats[mySrv] && m.seats[mySrv].host)
-      });
-    }
+    this.waiting = true;
     this.updateButtons();
+    if (this._waitNotified) return;
+    this._waitNotified = true;
+    if (this.onWaiting) this.onWaiting(m.room || window.__GD_ROOM || '');
   }
 
   /** 重连后补结算面板（只显示名次，不重播音效） */
@@ -358,7 +328,7 @@ export default class GuandanScene extends Phaser.Scene {
     if (this.audio) this.audio.uiClick();
     const room = window.__GD_ROOM;
     const base = location.origin + location.pathname.replace(/[^/]*$/, '');
-    const link = base + '?room=' + room + '#/pages/gd/index';
+    const link = base + '?room=' + room + '#/pages/gd/room';
     const done = () => this.toast('邀请链接已复制，发给好友即可进房', '#9fe6bf');
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(link).then(done).catch(() => this.toast('房间号：' + room, '#ffd76a'));
@@ -988,7 +958,7 @@ export default class GuandanScene extends Phaser.Scene {
     const turn = this.myTurn();
     // 只有「牌局进行中且未结算」才显示三个操作按钮；
     // 结算面板、等待房间时统一隐藏（避免再来一局后按钮不见/残留）
-    const showOps = t.step === 'play' && !this.settle && !(this.waitRoom && this.waitRoom.visible);
+    const showOps = t.step === 'play' && !this.settle && !this.waiting;
     [this.btnPass, this.btnHint, this.btnPlay].forEach((b) => {
       b.setVisible(showOps);
       if (b.shadow) b.shadow.setVisible(showOps && b.enabled !== false);
