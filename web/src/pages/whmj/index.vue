@@ -190,8 +190,14 @@ $line: rgba(255, 214, 140, 0.45);
           :key="item.key"
           @click="enterGame(item)">
           <view class="more__tiles">
-            <image class="more__tile more__tile--a" :src="tileImage(item.tiles[0], item.tiles[1])" mode="aspectFit" />
-            <image class="more__tile more__tile--b" :src="tileImage(item.tiles[2], item.tiles[3])" mode="aspectFit" />
+            <template v-if="item.cards">
+              <image class="more__tile more__tile--a" :src="pokerImage(item.cards[0])" mode="aspectFit" />
+              <image class="more__tile more__tile--b" :src="pokerImage(item.cards[1])" mode="aspectFit" />
+            </template>
+            <template v-else>
+              <image class="more__tile more__tile--a" :src="tileImage(item.tiles[0], item.tiles[1])" mode="aspectFit" />
+              <image class="more__tile more__tile--b" :src="tileImage(item.tiles[2], item.tiles[3])" mode="aspectFit" />
+            </template>
           </view>
           <view class="more__meta">
             <text class="more__name">{{ item.name }}</text>
@@ -338,6 +344,7 @@ $line: rgba(255, 214, 140, 0.45);
  * 2026/11/06     郑朝军      初始创建
  * 2026/11/07     郑朝军      改用原版 UI 素材重做大厅，拆分建桌与入房
  * 2026/11/12     郑朝军      首屏改用本地凭据自动登录，退出登录同时忘掉凭据
+ * 2026/11/12     郑朝军      玩法卡片「晃晃」改为「掼蛋」入口，点击进入掼蛋房间
  */
 import { ASSET_BASE } from '@/utils/whmj/const.js'
 import { ensureSession, fetchProfile, fetchRecords } from '@/utils/whmj/api.js'
@@ -350,6 +357,9 @@ const GEN = `${ASSET_BASE}/gen`
 
 /** 参考素材目录，取自开源项目的 UI 资源 */
 const XL = `${ASSET_BASE}/xl`
+
+/** 掼蛋美术目录，资源随 src/static/game 一起打包 */
+const GAME = `${(import.meta.env.BASE_URL || '/').replace(/\/+$/, '')}/static/game`
 
 /** 隐私指引确认标记，确认过就不再弹 */
 const PRIVACY_KEY = 'whmj_privacy_ok'
@@ -366,7 +376,7 @@ export default
         { key: 'tlj', name: '拖拉机', desc: '八十分双扣', badge: '', open: false, tiles: ['w', 7, 'w', 8] },
         { key: 'ddz1', name: '斗地主', desc: '经典三人局', badge: '', open: false, tiles: ['t', 2, 't', 9] },
         { key: 'kwx', name: '卡五星', desc: '湖北快节奏', badge: '热门', open: false, tiles: ['b', 1, 'w', 5] },
-        { key: 'hh', name: '晃晃', desc: '轻松休闲', badge: '', open: false, tiles: ['t', 1, 't', 9] },
+        { key: 'gd', name: '掼蛋', desc: '四人两副牌', badge: '新', open: true, cards: [27, 54] },
         { key: 'pdk', name: '跑得快', desc: '16 张快打', badge: '', open: false, tiles: ['w', 3, 'w', 6] }
       ],
       shopTabs: [
@@ -563,6 +573,16 @@ export default
     },
 
     /**
+     * 取掼蛋扑克牌面图路径
+     * @param {Number} index 牌面序号，1..13 方块A..K，27..39 红桃，53 小王，54 大王
+     * @returns {String} 牌面地址
+     */
+    pokerImage(index)
+    {
+      return `${GAME}/cards/normal/Card1_${index}.png`
+    },
+
+    /**
      * 取牌面图路径
      * @param {String} suit 花色键，w 万 / b 筒 / t 条 / z 红中
      * @param {Number} rank 点数，红中固定 1
@@ -723,7 +743,21 @@ export default
         return
       }
 
+      if (item.key === 'gd')
+      {
+        this.enterGuandan()
+        return
+      }
+
       await this.quickStart()
+    },
+
+    /** 进入掼蛋：先建房进等待厅，加电脑或等好友，再开局 */
+    enterGuandan()
+    {
+      audio.play('click')
+      this.sheet = ''
+      uni.navigateTo({ url: '/pages/gd/index?create=1' })
     },
 
     /**

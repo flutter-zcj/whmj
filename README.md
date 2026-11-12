@@ -1,7 +1,7 @@
-# 武汉赖子麻将 · H5 复刻版
+# 武汉赖子麻将 + 掼蛋 · H5 复刻版
 
-> 参考对象：应用宝《武汉赖子麻将》`com.wuhanlaizi.yyb` v6.3.4
-> 技术栈：**uni-app(Vue3) + Phaser 3** 前端，**Go + cherry** 服务端，H5 横屏 1334×750
+> 参考对象：应用宝《武汉赖子麻将》`com.wuhanlaizi.yyb` v6.3.4；掼蛋部分移植自 [flutter-zcj/guandan-uni](https://github.com/flutter-zcj/guandan-uni)
+> 技术栈：**uni-app(Vue3) + Phaser 3** 前端，**Go + cherry** 服务端，麻将横屏 1334×750、掼蛋横屏 1280×720
 >
 > 开源参考（**思路参考 + 素材复用，非代码移植**）：
 > - [xiyoufang/mahjong](https://github.com/xiyoufang/mahjong)：C++ `GameLogic/GameCmd/AIEngine`，参考其牌局状态机、操作优先级与 AI 决策骨架；**牌桌与结算 UI 已用其 `Resources/res` 原版素材高保真复刻**（绿绒布台面、金边罗盘、圆形过/碰/胡按钮、胜利绸带卷轴）；
@@ -18,7 +18,10 @@
 ```
 whmj/
 ├── web/                        前端（基于 flutter-zcj/prjtmpl 模板工程）
-│   ├── src/pages/whmj/         login.vue 登录 · index.vue 大厅 · table.vue 牌桌
+│   ├── src/pages/whmj/         login.vue 登录 · index.vue 大厅 · room.vue 房间 · table.vue 牌桌
+│   ├── src/pages/gd/           掼蛋页面（挂 Phaser 场景 + 竖屏强制横屏）
+│   ├── src/game/               掼蛋游戏层：engine(规则/提示/AI/状态机) · scenes · ui · net · audio · textures
+│   ├── src/static/game/        掼蛋原版美术与音效（271 个文件：牌面/桌面/按钮/120 条音效）
 │   ├── src/utils/whmj/         api/http/socket/pomelo/protocol/audio/const/table(scene.js)
 │   ├── src/static/whmj/        牌面、图标、音效、生成资源（gen/）
 │   │   ├── xl/                  XianLaiGame 素材：hall/tile/table/result/action
@@ -26,7 +29,14 @@ whmj/
 │   │   ├── audio/voice/        28 个牌名语音素材 t1..t28.mp3（中文 TTS 生成，仅别人出牌时播报）
 │   │   └── xyf/                 xiyoufang/mahjong 原版牌桌与结算素材（table/result）
 │   └── tools/gen_whmj_art.py   美术资源生成器（PIL，无外部素材）
-├── server/                     服务端（Go 1.24 + cherry v1.6.9）
+├── guandan/                    掼蛋服务端（Go 1.24 + cherry，simple 协议；移植版）
+│   ├── main.go                 cherry Application：simple 解析器 + WS 连接器 + 运维 HTTP
+│   ├── game/                   规则引擎（发牌/牌型/提示/AI/升级/进贡，与前端 JS 引擎对拍一致）
+│   ├── room/room.go            房间状态机（座位/开局/回合/结算/托管/掉线重连）
+│   ├── actor/actor.go          房间 actor（串行处理，定时消息回投）
+│   ├── store/store.go          MySQL 战绩组件（未配置时降级内存）
+│   └── etc/profile/            dev.json / prod.json（WS 9120、运维 9121）
+├── server/                     麻将服务端（Go 1.24 + cherry v1.6.9）
 │   ├── main.go                 cherry Application：pomelo 解析器 + WS 连接器 + HTTP
 │   ├── internal/rule/          牌面模型、赖子胡牌判定、番型
 │   ├── internal/game/          牌局状态机（发牌/出牌/碰杠胡/结算/机器人）
@@ -75,6 +85,18 @@ WebSocket（cherry pomelo，JSON 序列化），路由前缀即节点类型 `whm
 
 HTTP（前缀 `/whmj-api/`）：`POST /login`、`POST /register`、`GET|POST /profile`、`POST /records`、`GET /plays`。
 
+掼蛋走**独立的第二套服务端**，cherry **simple** 协议（`mid(uint32 BE) + len(uint32 BE) + JSON`），
+网关按路径分流：`/whmj-ws/` → 麻将 `:9111`，`/gd-ws/` → 掼蛋 `:9120`。
+
+| 方向 | mid | 说明 |
+| --- | --- | --- |
+| C→S | 1 join · 2 start · 3 addBot · 4 removeBot · 5 play · 6 pass · 7 leave · 8 ping · 9 ready | 进房/开局/加电脑/出牌/不出/心跳 |
+| S→C | 100 joined · 101 sync · 102 settle · 103 error · 104 pong · 105 hello · 106 left | 全量同步/结算/错误 |
+
+> 掼蛋不校验麻将令牌：进房用昵称 + `mj{uid}` 作为重连标识，未登录也能玩（用随机游客名）。
+> 大厅点「掼蛋」→ `pages/gd/index?create=1` → 服务端分配 6 位房号 → 等待层加电脑或等好友 → 开始。
+> 刷新页面按 `sessionStorage.gd_room` 回到原座位；分享链接形如 `?room=123456#/pages/gd/index`。
+
 登录态与自动重登：令牌存 `zbcx_mj_token`，登录/注册成功时另把账号密码（XOR + base64 混淆，不落明文）记到 `zbcx_mj_cred`。任意接口返回 401 时 `utils/whmj/http.js` 的 `request()` 会调 `relogin()` 用本地凭据静默登录一次，成功后把原请求重放一遍；长连接 `whmj.gate.auth` 返回 401 时 `socket.js` 同样先重登换新令牌再重连（`connect()` 内重试一次）。服务端内存库重启导致游客账号丢失时，按原凭据重建同名游客；只有重登也失败才回登录页。退出登录会同时清掉令牌与凭据。
 
 ## 4. 本地开发
@@ -83,8 +105,11 @@ HTTP（前缀 `/whmj-api/`）：`POST /login`、`POST /register`、`GET|POST /pr
 # 前端
 cd web && npm install --ignore-scripts && npm run dev:h5     # http://localhost:5173/whmj/
 
-# 服务端（Go 1.24+；无 PG/Redis 时自动降级内存实现）
+# 麻将服务端（Go 1.24+；无 PG/Redis 时自动降级内存实现）
 cd server && go run . -profile config/whmj.json -node whmj-1 -type whmj -http 127.0.0.1:9110
+
+# 掼蛋服务端（WS 9120、运维 9121；无 MySQL 时自动降级内存）
+cd guandan && go run . -profile etc/profile/dev.json -node guandan-1
 ```
 
 ## 5. 构建与部署
@@ -95,6 +120,7 @@ cd web && npm run build:h5
 
 # 服务端：CentOS 7 是 glibc 2.17，必须静态链接
 cd server && CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o whmj .
+cd guandan && CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o gd-server .
 ```
 
 服务器布局：
@@ -115,6 +141,8 @@ cd server && CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o whmj .
 
 ```bash
 cd server && CGO_ENABLED=0 go build -ldflags "-s -w" -o ../deploy/sandbox/whmj-server .
+cd guandan && CGO_ENABLED=0 go build -ldflags "-s -w" -o ../deploy/sandbox/gd-server .
+cp guandan/etc/profile/dev.json ../deploy/sandbox/config/guandan.json
 cd web && npm run build:h5 && rm -rf ../deploy/sandbox/whmj && cp -r dist/build/h5 ../deploy/sandbox/whmj
 node /root/.codebuddy/skills/sites/scripts/publish.js --dir /workspace/whmj/deploy/sandbox \
   --port 3000 --language node --install-cmd "" --start-cmd "PORT=3000 node server.js"
@@ -135,7 +163,7 @@ node /root/.codebuddy/skills/sites/scripts/publish.js --dir /workspace/whmj/depl
 | 红中牌面渲染（`tile_z1`） | 通过 |
 | 商城 6 档礼包 + 三页签 | 通过 |
 | 隐私指引 / 防沉迷 / 防作弊 三个弹窗 | 通过 |
-| 大厅 7 个玩法卡（武汉/四川/拖拉机/斗地主/卡五星/晃晃/跑得快） | 通过，无重名 |
+| 大厅 7 个玩法卡（武汉/四川/拖拉机/斗地主/卡五星/掼蛋/跑得快） | 通过，无重名 |
 | 大厅竖屏自动横置，非 16:9 屏用同图模糊铺底 | 通过（390×844 / 844×390 / 1024×768 / 1920×1080） |
 | 翻皮子定赖子、红中与皮子单张杠、开口才能胡 | 通过（`rule/round.go`、`game/canHu`） |
 | 吃牌（仅下家）与开口计数 | 通过（`TestChiFlow`）|
@@ -181,12 +209,16 @@ node /root/.codebuddy/skills/sites/scripts/publish.js --dir /workspace/whmj/depl
 | 登录页窄屏挤压：`794×794` 下左侧品牌区只剩约 210px，副标「红中赖子杠 · 二五八将」由一行挤成 4 行、登录卡片右侧贴边；改为页面左右各留 12rpx、副标 `white-space: nowrap` 并用 `clamp(15px, 2.2vw, 34px)` 自适应字号，卡片 `flex: none` 保持 520rpx | 通过（`pub5_login_sq.png` / `online_login.png`：副标单行、与卡片间距 7px 不重叠，卡片左右各留 13px） |
 | 备用发布通道：华为云主机不可达期间，用 `deploy/sandbox/server.js` 单端口网关（`/whmj/` 静态 + `/whmj-api/` 转 9110 + `/whmj-ws/` 原样管道到 9111）把整套服务发布到沙箱，作为临时可访问环境 | 通过（线上链接游客登录 → 建房 → 开局全链路，`pageerror: 0`） |
 | 登录失效自动重登：登录/注册成功写 `zbcx_mj_cred`（XOR+base64），接口 401 与 `gate.auth` 401 都会先 `relogin()` 再重放请求 / 重连回房，玩家不用重新输密码；服务端内存库重启丢游客账号时按原凭据重建同名游客；退出登录清凭据 | 通过（把 `zbcx_mj_token` 改成 `deadbeef` 后刷新：大厅与房间页均自动换新令牌、`uid` 不变、未跳登录页；重启服务端后同名游客 `guest842130` 自动重建；手动打开登录页会自动登录跳回大厅；`localStorage.clear()` 后停在登录页等输入） |
+| 掼蛋移植（服务端 + 前端）：`server-go/` 整体搬进 `guandan/`（module 改 `github.com/zbcx/whmj/guandan`，端口 9120/9121），`src/game` 与 `src/static/game` 搬进 `web/src`，新增 `pages/gd/index.vue`；网关加 `/gd-ws/` 管道并同时拉起两个 Go 进程 | 通过（大厅卡片「晃晃」改为「掼蛋」→ 进入建房 `room 259710` → 加 3 电脑 → 开局 27 张手牌 → 提示+出牌后剩 26 张，`pageerror: 0`） |
+| 掼蛋双人联机：A 建房、B 用 `?room=` 链接进同一房 → 房主加 2 电脑 → 开局，两端各自视角把自己排 0 号位 | 通过（同房 `727074`，两端各 27 张，座位名与出牌提示互相同步，`pageerror: 0`） |
+| 掼蛋移动端竖屏：舞台整体旋转 90° 变横屏；原 `scale.refresh()` 不重算 `parentSize`，画面只占屏幕一角（390 宽），补 `scale.setParentSize(舞台宽高)` 后铺满 | 通过（390×844 下 display 由 390×219 变 693×390，`rotated:true`，加电脑开局后手牌 27 张） |
+| 掼蛋刷新回房：房号存 `sessionStorage.gd_room`，刷新按房号重连回原座位（大厅重新进则新建房） | 通过（房号 `991289` 刷新后仍在同房等待层，昵称不变） |
 | 公网发布后 `/profile`、`/records` 恒 401：平台网关给每个请求塞自己的 `Authorization: Bearer <JWT>`，把客户端令牌覆盖掉（网关日志 `auth=Bearer eyJhbGciO…`），`auth()` 原来优先取请求头因而取错令牌；改为客户端把令牌同时拼进 `?token=`、服务端 `HTTP.auth` 优先读查询参数（直连 nginx 仍可用请求头） | 通过（公网同一令牌：`?token=` 200、`Authorization` 401；实机游客进入后页头显示 `游客6392 / ID 4`（修复前是 `游客 / ID 0`），建房 → 加 2 电脑 → 开局牌桌正常，`pageerror: 0`） |
 
 ## 7. 已知边界
 
 - 支付为模拟，未接入任何支付 SDK；登录为账号体系，不含微信/QQ 登录。
-- 四川麻将、拖拉机、斗地主、卡五星、晃晃、跑得快六个入口为占位（点击提示「即将上线」）。
+- 四川麻将、拖拉机、斗地主、卡五星、跑得快五个入口为占位（点击提示「即将上线」）；掼蛋已可用。
 - 牌面与大厅 PNG 取自 `xYajun/XianLaiGame`（牌面放大 2 倍），牌桌与结算 PNG 取自 `xiyoufang/mahjong` 的 `Resources/res`（43 个文件，见 `web/src/static/whmj/xyf/`），出牌水滴指针自绘；28 个牌名语音由中文 TTS 合成后转 48k MP3（约 108 KB，见 `audio/voice/`，按反馈仅在别人出牌时播报），操作音效取自原版 APK 解码资源；**不复制原版 APK 的像素与音频**。原包 `res.dat` 的加密方式已还原（XXTEA，密钥 `bzxgmj`，见 `docs/原版APK逆向分析.md`），仅用于规则比对。
 - **本轮只做 UI 复刻，规则层未改**（按确认的分步方案）：`xiyoufang/mahjong` 是 136 张、含东南西北中发白的经典麻将（平胡/碰碰胡/清色/七对/钓鱼/扎鸟），`fwhappy/mahjong` 亦非武汉红中赖子杠规则。整体替换会重做牌张模型、牌面图、胡牌算法、番型、结算、AI 与全部单测，并使皮子/赖子、二五八将、开口、一炮单响失效，**136 张规则整体重写留待下一轮**。当前规则主干仍由 `internal/rule` + `internal/game` 维护，仅吸收状态机骨架与听牌枚举（`TingList`/`TingMap`）、单响结算思路；素材复刻不含任何原项目 C++ 代码。
 - 牌张为 112 张（万筒条 + 红中）；原版含风牌与发/白（136 张）并支持 4 种房型与「开口番/口口番」，差异清单见逆向分析文档第 3 节。

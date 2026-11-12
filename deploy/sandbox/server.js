@@ -1,7 +1,7 @@
 'use strict'
 
-// 沙箱发布网关：单端口同时提供 H5 静态页、账号接口与对局 WebSocket。
-// /whmj/ 静态资源、/whmj-api/ 转 9110、/whmj-ws/ 原样管道到 9111。
+// 沙箱发布网关：单端口同时提供 H5 静态页、账号接口与两套对局 WebSocket。
+// /whmj/ 静态资源、/whmj-api/ 转 9110、/whmj-ws/ 管道到 9111（麻将）、/gd-ws/ 管道到 9120（掼蛋）。
 
 const http = require('http')
 const net = require('net')
@@ -15,6 +15,8 @@ const PORT = Number(process.env.PORT || 3000)
 const API_HOST = '127.0.0.1'
 const API_PORT = 9110
 const WS_PORT = 9111
+const GD_WS_PORT = 9120
+const GD_API_PORT = 9121
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -57,6 +59,27 @@ function startGameServer()
   child.stdout.on('data', (buf) => process.stdout.write(`[game] ${buf}`))
   child.stderr.on('data', (buf) => process.stderr.write(`[game] ${buf}`))
   child.on('exit', (code, signal) => console.error('[game] 退出', code, signal))
+}
+
+/** 启动掼蛋服务端（WebSocket 9120、运维 9121） */
+function startGuandanServer()
+{
+  const bin = path.join(ROOT, 'gd-server')
+
+  if (!fs.existsSync(bin))
+  {
+    console.error('[boot] 缺少掼蛋服务端二进制', bin)
+    return
+  }
+
+  const child = spawn(bin, ['-profile', 'config/guandan.json', '-node', 'guandan-1'], {
+    cwd: ROOT,
+    stdio: ['ignore', 'pipe', 'pipe']
+  })
+
+  child.stdout.on('data', (buf) => process.stdout.write(`[guandan] ${buf}`))
+  child.stderr.on('data', (buf) => process.stderr.write(`[guandan] ${buf}`))
+  child.on('exit', (code, signal) => console.error('[guandan] 退出', code, signal))
 }
 
 /** 把 /whmj-api/xxx 转发到 127.0.0.1:9110/xxx */
@@ -125,12 +148,12 @@ function serveStatic(req, res)
   })
 }
 
-/** WebSocket 握手原样转发到 9111，不做帧解析 */
-function proxyWs(req, socket, head)
+/** WebSocket 握手原样转发到对应游戏服务端，不做帧解析 */
+function proxyWs(req, socket, head, port, prefix)
 {
-  const upstream = net.connect(WS_PORT, API_HOST, () =>
+  const upstream = net.connect(port, API_HOST, () =>
   {
-    const pathname = req.url.replace(/^\/whmj-ws/, '') || '/'
+    const pathname = req.url.replace(new RegExp('^' + prefix), '') || '/'
     const lines = [`GET ${pathname} HTTP/1.1`]
 
     for (let i = 0; i < req.rawHeaders.length; i += 2)
@@ -154,6 +177,7 @@ function proxyWs(req, socket, head)
 }
 
 startGameServer()
+startGuandanServer()
 
 const server = http.createServer((req, res) =>
 {
@@ -191,9 +215,17 @@ const server = http.createServer((req, res) =>
 
 server.on('upgrade', (req, socket, head) =>
 {
-  if ((req.url || '').startsWith('/whmj-ws'))
+  const url = req.url || ''
+
+  if (url.startsWith('/whmj-ws'))
   {
-    proxyWs(req, socket, head)
+    proxyWs(req, socket, head, WS_PORT, '/whmj-ws')
+    return
+  }
+
+  if (url.startsWith('/gd-ws'))
+  {
+    proxyWs(req, socket, head, GD_WS_PORT, '/gd-ws')
     return
   }
 

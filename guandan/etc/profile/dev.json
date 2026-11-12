@@ -1,0 +1,34 @@
+{
+  "env": "dev",
+  "debug": true,
+  "print_level": "info",
+  "node": {
+    "game": [
+      {
+        "node_id": "^guandan-.*$",
+        "address": "0.0.0.0:9120",
+        "rpc_address": "127.0.0.1:9120",
+        "enabled": true,
+        "__settings__": {
+          "http_addr": "0.0.0.0:9121",
+          "db_id_list": ["guandan"]
+        }
+      }
+    ]
+  },
+  "db": {
+    "guandan": [
+      {
+        "db_id": "guandan",
+        "enable": false,
+        "db_name": "guandan",
+        "host": "127.0.0.1:3306",
+        "user_name": "root",
+        "password": "",
+        "max_idle_connect": 4,
+        "max_open_connect": 16,
+        "log_mode": false
+      }
+    ]
+  }
+}
