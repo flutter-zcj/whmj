@@ -111,6 +111,19 @@ cd server && CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o whmj .
 
 部署顺序：建库 → 传二进制与 `etc/` → 起 systemd → nginx 追加 `deploy/nginx-whmj.conf` 片段 → `nginx -t && nginx -s reload` → 前端「先删后拷」（保留 `uploads`）→ 浏览器验收。
 
+备用沙箱通道（华为云主机不可达时用，单端口 3000 同时提供静态页 / 接口 / WebSocket）：
+
+```bash
+cd server && CGO_ENABLED=0 go build -ldflags "-s -w" -o ../deploy/sandbox/whmj-server .
+cd web && npm run build:h5 && rm -rf ../deploy/sandbox/whmj && cp -r dist/build/h5 ../deploy/sandbox/whmj
+node /root/.codebuddy/skills/sites/scripts/publish.js --dir /workspace/whmj/deploy/sandbox \
+  --port 3000 --language node --install-cmd "" --start-cmd "PORT=3000 node server.js"
+```
+
+> 该网关会用自己的登录态 JWT 覆盖 `Authorization` 头（实测把客户端令牌冲掉，导致 `/profile`、`/records` 恒返回 401），
+> 因此客户端把令牌同时拼到 `?token=` 上，服务端 `HTTP.auth` 优先读查询参数，其次才回落到请求头。
+
+
 ## 6. 验收记录
 
 | 项 | 结果 |
@@ -168,6 +181,7 @@ cd server && CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o whmj .
 | 登录页窄屏挤压：`794×794` 下左侧品牌区只剩约 210px，副标「红中赖子杠 · 二五八将」由一行挤成 4 行、登录卡片右侧贴边；改为页面左右各留 12rpx、副标 `white-space: nowrap` 并用 `clamp(15px, 2.2vw, 34px)` 自适应字号，卡片 `flex: none` 保持 520rpx | 通过（`pub5_login_sq.png` / `online_login.png`：副标单行、与卡片间距 7px 不重叠，卡片左右各留 13px） |
 | 备用发布通道：华为云主机不可达期间，用 `deploy/sandbox/server.js` 单端口网关（`/whmj/` 静态 + `/whmj-api/` 转 9110 + `/whmj-ws/` 原样管道到 9111）把整套服务发布到沙箱，作为临时可访问环境 | 通过（线上链接游客登录 → 建房 → 开局全链路，`pageerror: 0`） |
 | 登录失效自动重登：登录/注册成功写 `zbcx_mj_cred`（XOR+base64），接口 401 与 `gate.auth` 401 都会先 `relogin()` 再重放请求 / 重连回房，玩家不用重新输密码；服务端内存库重启丢游客账号时按原凭据重建同名游客；退出登录清凭据 | 通过（把 `zbcx_mj_token` 改成 `deadbeef` 后刷新：大厅与房间页均自动换新令牌、`uid` 不变、未跳登录页；重启服务端后同名游客 `guest842130` 自动重建；手动打开登录页会自动登录跳回大厅；`localStorage.clear()` 后停在登录页等输入） |
+| 公网发布后 `/profile`、`/records` 恒 401：平台网关给每个请求塞自己的 `Authorization: Bearer <JWT>`，把客户端令牌覆盖掉（网关日志 `auth=Bearer eyJhbGciO…`），`auth()` 原来优先取请求头因而取错令牌；改为客户端把令牌同时拼进 `?token=`、服务端 `HTTP.auth` 优先读查询参数（直连 nginx 仍可用请求头） | 通过（公网同一令牌：`?token=` 200、`Authorization` 401；实机游客进入后页头显示 `游客6392 / ID 4`（修复前是 `游客 / ID 0`），建房 → 加 2 电脑 → 开局牌桌正常，`pageerror: 0`） |
 
 ## 7. 已知边界
 

@@ -325,6 +325,27 @@ function redirectLogin()
 }
 
 /**
+ * 拼出带令牌的请求地址
+ * 反向代理（如网关自带的登录态）会用其 JWT 覆盖 Authorization 头，
+ * 因此令牌同时放在查询参数上，服务端优先取查询参数
+ * @param {String} path 相对路径
+ * @returns {String} 完整请求地址
+ */
+function buildURL(path)
+{
+  const token = getToken()
+
+  if (!token)
+  {
+    return BASE_URL + path
+  }
+
+  const sep = path.indexOf('?') >= 0 ? '&' : '?'
+
+  return `${BASE_URL}${path}${sep}token=${encodeURIComponent(token)}`
+}
+
+/**
  * 发一次请求，不做任何重试
  * @param {Object} options 请求配置
  * @returns {Promise<Object>} 接口 data 字段
@@ -337,7 +358,7 @@ function send(options)
 
     uni.request(
     {
-      url: BASE_URL + options.url,
+      url: buildURL(options.url),
       method: options.method || 'POST',
       data: options.data || {},
       header:

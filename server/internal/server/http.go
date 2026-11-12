@@ -174,15 +174,22 @@ func (h *HTTP) register(r *http.Request) APIResponse {
 	return APIResponse{Data: map[string]any{"token": token, "profile": u}}
 }
 
-// auth 从请求头解析令牌。
+// auth 解析令牌。
+// 查询参数优先于请求头：nginx 直连时可以只用 Authorization，但经过带登录态的反向代理
+// （如 CloudStudio 网关）时，代理会用自己签发的 JWT 覆盖 Authorization 头，
+// 客户端带来的令牌就丢了，因此客户端统一把令牌放在 ?token= 上，这里优先取它。
 func (h *HTTP) auth(r *http.Request) (int64, bool) {
-	token := r.URL.Query().Get("token")
-
-	if head := r.Header.Get("Authorization"); strings.HasPrefix(head, "Bearer ") {
-		token = strings.TrimPrefix(head, "Bearer ")
+	if token := r.URL.Query().Get("token"); token != "" {
+		return h.store.UIDByToken(token)
 	}
 
-	return h.store.UIDByToken(token)
+	head := r.Header.Get("Authorization")
+
+	if strings.HasPrefix(head, "Bearer ") {
+		return h.store.UIDByToken(strings.TrimPrefix(head, "Bearer "))
+	}
+
+	return 0, false
 }
 
 func (h *HTTP) profile(r *http.Request) APIResponse {
