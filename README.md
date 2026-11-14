@@ -83,7 +83,17 @@ WebSocket（cherry pomelo，JSON 序列化），路由前缀即节点类型 `whm
 | C→S | `whmj.room.sync` / `ready` / `discard` / `action` / `leave` / `nextRound` / `addBot` / `start` | 牌桌与房间页（`nextRound` 结算后手动开下一局；`addBot` 房主补电脑；`start` 房主开局） |
 | S→C | `onDeal` `onDraw` `onDiscard` `onTurn` `onAsk` `onActionDone` `onTing` `onSync` `onGameOver` `onRoomState` | 下行事件；`onTing` 带 `tips`，快照带 `tingTips`（`{discard, tiles}`） |
 
-HTTP（前缀 `/whmj-api/`）：`POST /login`、`POST /register`、`GET|POST /profile`、`POST /records`、`GET /plays`。
+HTTP（前缀 `/whmj-api/`）：`POST /login`、`POST /register`、`GET|POST /profile`、`POST /records`、`GET /plays`、`GET /room/exists?roomId=`。
+
+统一查房（网关聚合，供大厅「加入房间」识别房号归属）：`GET /room/exists?room=123456` →
+
+```json
+{ "code": 200, "data": { "game": "gd", "name": "掼蛋", "room": "123456", "seats": 2, "maxSeats": 4, "playing": false } }
+```
+
+网关按 `ROOM_BACKENDS` 并行问各玩法（麻将 `:9110/room/exists?roomId=`、掼蛋 `:9121/room/exists?room=`），
+命中哪个就返回哪个；都没命中回 `404`。**新增游戏只需在网关 `ROOM_BACKENDS` 与大厅 `ROOM_PAGES` 各加一行**，
+大厅「加入房间」即可同时支持该玩法的房号。
 
 掼蛋走**独立的第二套服务端**，cherry **simple** 协议（`mid(uint32 BE) + len(uint32 BE) + JSON`），
 网关按路径分流：`/whmj-ws/` → 麻将 `:9111`，`/gd-ws/` → 掼蛋 `:9120`。
@@ -218,6 +228,8 @@ node /root/.codebuddy/skills/sites/scripts/publish.js --dir /workspace/whmj/depl
 | 掼蛋双人同房（新版）：A 建房 → B 用 `#/pages/gd/room?room=` 邀请链接入座并显示「等待房主」→ 房主补 2 电脑 → 开局，两端各自视角 0 号位 | 通过（同房 `660056`：A 手牌 22 / B 手牌 27，座位名互相同步，`pageerror: 0`） |
 | 掼蛋页面切换掉座：房间页 `redirectTo` 牌桌时会重建连接，服务端原来在等待态立刻清座，可能把刚开局的房间拆散；改为等待态也走 `OfflineMS` 宽限（重连即恢复座位），宽限期到才清座 | 通过（`room_test.go` 三个用例：宽限内保留/重连复位/满座才可开局；实机开房→开局不掉座） |
 | 公网发布后 `/profile`、`/records` 恒 401：平台网关给每个请求塞自己的 `Authorization: Bearer <JWT>`，把客户端令牌覆盖掉（网关日志 `auth=Bearer eyJhbGciO…`），`auth()` 原来优先取请求头因而取错令牌；改为客户端把令牌同时拼进 `?token=`、服务端 `HTTP.auth` 优先读查询参数（直连 nginx 仍可用请求头） | 通过（公网同一令牌：`?token=` 200、`Authorization` 401；实机游客进入后页头显示 `游客6392 / ID 4`（修复前是 `游客 / ID 0`），建房 → 加 2 电脑 → 开局牌桌正常，`pageerror: 0`） |
+| 大厅「加入房间」支持多玩法：原来只走 `whmj.lobby.joinRoom`，输掼蛋房号提示「房间不存在」；改为先请求网关 `GET /room/exists?room=`，由网关并行问麻将 `:9110` 与掼蛋 `:9121` 的 `/room/exists`，命中后按 `ROOM_PAGES` 跳对应房间页（麻将先占座，掼蛋由房间页建连入座），房号不存在或已开局都给出提示 | 通过（掼蛋房 `230141`：查房 `game:gd`，另一账号从大厅输入房号 → `#/pages/gd/room?room=230141`，座位 `游客7513 / 游客6067`；麻将房 `929877`：查房 `game:mj` → `#/pages/whmj/room?roomId=929877` 两人入座；乱输 `100002` → 「没有找到房号 100002」；已开局的 `768263` → 「掼蛋房间已开局，等这局结束再进」，`pageerror: 0`） |
+| 掼蛋竖屏点牌无响应：牌桌页固定 `setForcedRotation(0)`，而全局横屏已把 `uni-app` 顺时针转 90°，Phaser 触摸坐标错位（点屏幕中心得到画布 `(360,640)`，应为 `(640,360)`），手机上选不中牌、点不出牌；改为按 `innerHeight > innerWidth` 传 90 / 0，并在 resize、转屏、全屏后重算 | 通过（390×844：点中心 → `(640,360)`，点手牌 `sel 0→1`、提示选中 5 张、出牌后手牌 22→17；844×390 与 1280×820 同步回归通过，`pageerror: 0`） |
 
 ## 7. 已知边界
 

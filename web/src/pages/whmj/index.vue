@@ -345,7 +345,9 @@ $line: rgba(255, 214, 140, 0.45);
  * 2026/11/07     郑朝军      改用原版 UI 素材重做大厅，拆分建桌与入房
  * 2026/11/12     郑朝军      首屏改用本地凭据自动登录，退出登录同时忘掉凭据
  * 2026/11/12     郑朝军      玩法卡片「晃晃」改为「掼蛋」入口，点击进入掼蛋房间
+ * 2026/11/14     郑朝军      加入房间改为先查房号归属玩法，自动进麻将或掼蛋房间
  */
+
 import { ASSET_BASE } from '@/utils/whmj/const.js'
 import { ensureSession, fetchProfile, fetchRecords } from '@/utils/whmj/api.js'
 import { clearAuth, clearCredential, getToken, getUser, setUser } from '@/utils/whmj/http.js'
@@ -363,6 +365,50 @@ const GAME = `${(import.meta.env.BASE_URL || '/').replace(/\/+$/, '')}/static/ga
 
 /** 隐私指引确认标记，确认过就不再弹 */
 const PRIVACY_KEY = 'whmj_privacy_ok'
+
+/**
+ * 玩法房间页路由表：房号归属哪个玩法就跳哪个房间页。
+ * 新增游戏时这里补一行，服务端 ROOM_BACKENDS 也补一条，大厅无需再改。
+ */
+const ROOM_PAGES = {
+  mj: { name: '麻将', url: (roomId) => `/pages/whmj/room?roomId=${roomId}`, needSeat: true },
+  gd: { name: '掼蛋', url: (roomId) => `/pages/gd/room?room=${roomId}`, needSeat: false }
+}
+
+/**
+ * 按房号查这间房属于哪个玩法（网关并行问各游戏服务）
+ * @param {String} roomId 房号
+ * @returns {Promise<Object>} { game, name, seats, maxSeats, playing }
+ */
+function lookupRoom(roomId)
+{
+  return new Promise((resolve, reject) =>
+  {
+    uni.request(
+    {
+      url: `/room/exists?room=${encodeURIComponent(roomId)}`,
+      method: 'GET',
+      success: (res) =>
+      {
+        const body = res.data || {}
+
+        if (res.statusCode === 200 && body.code === 200 && body.data)
+        {
+          resolve(body.data)
+          return
+        }
+
+        const err = new Error(body.msg || '房间不存在')
+
+        reject(err)
+      },
+      fail: () =>
+      {
+        reject(new Error('网络异常，请稍后重试'))
+      }
+    })
+  })
+}
 
 export default
 {
@@ -692,7 +738,7 @@ export default
       this.sheet = 'join'
     },
 
-    /** 按房号进入已有房间 */
+    /** 按房号进入已有房间：先查房号属于哪个玩法，再进对应房间页 */
     async joinRoom()
     {
       const roomId = String(this.joinRoomId || '').trim()
@@ -713,12 +759,32 @@ export default
 
       try
       {
-        await this.ensureSocket()
-        await socket.request('whmj.lobby.joinRoom', { roomId })
+        const info = await lookupRoom(roomId)
+        const page = ROOM_PAGES[info.game]
 
-        socket.setRoom(roomId)
+        if (!page)
+        {
+          this.toast(`暂不支持加入${info.name || info.game}房间`)
+          return
+        }
+
+        if (info.playing)
+        {
+          this.toast(`${page.name}房间已开局，等这局结束再进`)
+          return
+        }
+
+        /** 麻将走长连接先占座；掼蛋由房间页自己建连入座 */
+        if (page.needSeat)
+        {
+          await this.ensureSocket()
+          await socket.request('whmj.lobby.joinRoom', { roomId })
+          socket.setRoom(roomId)
+        }
+
         this.sheet = ''
-        uni.navigateTo({ url: `/pages/whmj/room?roomId=${roomId}` })
+        this.joinRoomId = ''
+        uni.navigateTo({ url: page.url(roomId) })
       }
       catch (err)
       {

@@ -82,13 +82,13 @@ function startGuandanServer()
   child.on('exit', (code, signal) => console.error('[guandan] 退出', code, signal))
 }
 
-/** 把 /whmj-api/xxx 转发到 127.0.0.1:9110/xxx */
-function proxyApi(req, res)
+/** 把 /whmj-api/xxx 转发到 127.0.0.1:9110/xxx，其它前缀按传入端口转发 */
+function proxyApi(req, res, port = API_PORT, prefix = '/whmj-api')
 {
-  const upstreamPath = req.url.replace(/^\/whmj-api/, '') || '/'
-  const headers = Object.assign({}, req.headers, { host: `${API_HOST}:${API_PORT}` })
+  const upstreamPath = req.url.slice(prefix.length) || '/'
+  const headers = Object.assign({}, req.headers, { host: `${API_HOST}:${port}` })
 
-  const up = http.request({ host: API_HOST, port: API_PORT, method: req.method, path: upstreamPath, headers }, (upRes) =>
+  const up = http.request({ host: API_HOST, port, method: req.method, path: upstreamPath, headers }, (upRes) =>
   {
     res.writeHead(upRes.statusCode || 502, upRes.headers)
     upRes.pipe(res)
@@ -107,8 +107,79 @@ function proxyApi(req, res)
   req.pipe(up)
 }
 
-/** 输出静态文件，找不到时回退 index.html 交给前端路由 */
-function serveStatic(req, res)
+/**
+ * 加入房间用的玩法注册表：新增游戏时在这里加一行即可，
+ * 大厅「加入房间」会按顺序探测，命中哪个就跳哪个房间页。
+ */
+const ROOM_BACKENDS = [
+  { key: 'mj', name: '麻将', port: API_PORT, query: 'roomId', pick: (body) => (body && body.data && body.data.game === 'mj' ? body.data : null) },
+  { key: 'gd', name: '掼蛋', port: GD_API_PORT, query: 'room', pick: (body) => (body && body.exist && body.game === 'gd' ? {
+    game: 'gd', room: body.room, seats: body.humans, maxSeats: body.maxSeats,
+    playing: body.status && body.status !== 'waiting', status: body.status
+  } : null) }
+]
+
+/** 向某个玩法后端问一次房号，未命中/超时返回 null */
+function probeRoom(backend, roomId)
+{
+  return new Promise((resolve) =>
+  {
+    const path = `/room/exists?${backend.query}=${encodeURIComponent(roomId)}`
+    const req = http.request({ host: API_HOST, port: backend.port, method: 'GET', path, timeout: 1200 }, (upRes) =>
+    {
+      let raw = ''
+      upRes.setEncoding('utf8')
+      upRes.on('data', (c) => { raw += c })
+      upRes.on('end', () =>
+      {
+        try
+        {
+          resolve(backend.pick(JSON.parse(raw)))
+        }
+        catch (err)
+        {
+          resolve(null)
+        }
+      })
+    })
+
+    req.on('timeout', () => { req.destroy(); resolve(null) })
+    req.on('error', () => resolve(null))
+    req.end()
+  })
+}
+
+/** /room/exists?room=123456：并行问所有玩法，返回房号归属 */
+async function roomLookup(req, res)
+{
+  const q = new URL(req.url, 'http://127.0.0.1').searchParams
+  const roomId = String(q.get('room') || q.get('roomId') || '').trim()
+
+  res.setHeader('Content-Type', 'application/json; charset=utf-8')
+  res.setHeader('Cache-Control', 'no-store')
+
+  if (!/^\d{4,8}$/.test(roomId))
+  {
+    res.writeHead(400)
+    res.end(JSON.stringify({ code: 400, msg: '房号应为 4 到 8 位数字' }))
+    return
+  }
+
+  const hits = await Promise.all(ROOM_BACKENDS.map((b) => probeRoom(b, roomId).then((v) => (v ? Object.assign({ name: b.name }, v) : null))))
+  const hit = hits.find(Boolean)
+
+  if (!hit)
+  {
+    res.writeHead(404)
+    res.end(JSON.stringify({ code: 404, msg: `没有找到房号 ${roomId}` }))
+    return
+  }
+
+  res.writeHead(200)
+  res.end(JSON.stringify({ code: 200, data: hit }))
+}
+
+/** 输出静态文件，找不到时回退 index.html 交给前端路由 */function serveStatic(req, res)
 {
   const raw = decodeURIComponent((req.url || '/').split('?')[0])
   const rel = raw.replace(/^\/whmj\/?/, '')
@@ -193,6 +264,20 @@ const server = http.createServer((req, res) =>
   if (pathname.startsWith('/whmj-api'))
   {
     proxyApi(req, res)
+    return
+  }
+
+  /* 掼蛋运维接口（/rooms、/room/exists 等），仅用于查房与排查 */
+  if (pathname.startsWith('/gd-api'))
+  {
+    proxyApi(req, res, GD_API_PORT, '/gd-api')
+    return
+  }
+
+  /* 统一查房：告诉大厅输入的房号属于哪个玩法 */
+  if (pathname === '/room/exists')
+  {
+    roomLookup(req, res)
     return
   }
 

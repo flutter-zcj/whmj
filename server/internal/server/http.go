@@ -48,6 +48,7 @@ func (h *HTTP) Init() {
 	mux.HandleFunc("/register", h.wrap(h.register))
 	mux.HandleFunc("/profile", h.wrap(h.profile))
 	mux.HandleFunc("/records", h.wrap(h.records))
+	mux.HandleFunc("/room/exists", h.wrap(h.roomExists))
 
 	h.srv = &http.Server{
 		Addr:              h.addr,
@@ -213,4 +214,36 @@ func (h *HTTP) records(r *http.Request) APIResponse {
 	}
 
 	return APIResponse{Data: map[string]any{"records": h.store.Records(uid, 20)}}
+}
+
+// roomExists 按房号查询本服务的房间，供大厅「加入房间」判断房号属于哪个玩法。
+func (h *HTTP) roomExists(r *http.Request) APIResponse {
+	roomID := r.URL.Query().Get("room")
+	if roomID == "" {
+		roomID = r.URL.Query().Get("roomId")
+	}
+
+	if roomID == "" {
+		return APIResponse{Code: 400, Msg: "缺少房号"}
+	}
+
+	list, _ := RoomIndex.Load().([]RoomInfo)
+
+	for _, info := range list {
+		if info.RoomID != roomID {
+			continue
+		}
+
+		return APIResponse{Data: map[string]any{
+			"game":     "mj",
+			"room":     info.RoomID,
+			"seats":    info.Seats,
+			"maxSeats": 4,
+			"playing":  info.Playing,
+			"round":    info.Round,
+			"maxRound": info.MaxRound,
+		}}
+	}
+
+	return APIResponse{Code: 404, Msg: "房间不存在"}
 }

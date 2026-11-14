@@ -142,6 +142,28 @@ func startHTTP(app cfacade.IApplication, sto *store.Component) {
 		}
 		writeJSON(w, v)
 	})
+	// 按房号查房：供大厅「加入房间」识别房号属于哪个玩法
+	mux.HandleFunc("/room/exists", func(w http.ResponseWriter, r *http.Request) {
+		roomID := r.URL.Query().Get("room")
+		if roomID == "" {
+			roomID = r.URL.Query().Get("roomId")
+		}
+		if roomID == "" {
+			writeJSON(w, map[string]any{"exist": false, "game": "gd", "msg": "缺少房号"})
+			return
+		}
+		list, _ := actor.Snapshot.Load().([]map[string]any)
+		for _, item := range list {
+			if id, _ := item["id"].(string); id == roomID {
+				writeJSON(w, map[string]any{
+					"exist": true, "game": "gd", "room": id,
+					"status": item["status"], "humans": item["humans"], "maxSeats": 4,
+				})
+				return
+			}
+		}
+		writeJSON(w, map[string]any{"exist": false, "game": "gd", "room": roomID})
+	})
 	mux.HandleFunc("/top", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, sto.TopPlayers(20))
 	})

@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"math/rand"
+	"sync/atomic"
 	"time"
 
 	cfacade "github.com/cherry-game/cherry/facade"
@@ -13,6 +14,9 @@ import (
 	"github.com/zbcx/whmj/internal/game"
 	"github.com/zbcx/whmj/internal/store"
 )
+
+// RoomIndex 房间列表只读快照，供 HTTP 侧按房号查房（actor 内更新，HTTP 只读，避免并发读 map）。
+var RoomIndex atomic.Value
 
 // plays 支持的玩法列表，客户端大厅按此渲染。
 var plays = []PlayInfo{
@@ -43,6 +47,7 @@ func (l *Lobby) AliasID() string {
 // OnInit 注册处理函数。
 func (l *Lobby) OnInit() {
 	l.rooms = make(map[string]*Room)
+	RoomIndex.Store([]RoomInfo{})
 
 	l.Local().Register("enter", l.onEnter)
 	l.Local().Register("list", l.onList)
@@ -173,9 +178,15 @@ func (l *Lobby) createAndJoin(session *cproto.Session, cfg game.Config, rounds i
 	}
 
 	l.rooms[id] = room
+	l.publishIndex()
 	agent.SetData("roomId", id)
 
 	agent.Response(session, map[string]any{"roomId": id, "base": cfg.Base})
+}
+
+// publishIndex 刷新房间只读快照（只在大厅 actor 线程调用）。
+func (l *Lobby) publishIndex() {
+	RoomIndex.Store(l.roomList())
 }
 
 func (l *Lobby) onJoinRoom(session *cproto.Session, req *JoinReq) {
@@ -204,6 +215,7 @@ func (l *Lobby) onJoinRoom(session *cproto.Session, req *JoinReq) {
 		Nick:   nick,
 	})
 
+	l.publishIndex()
 	agent.Response(session, map[string]any{"roomId": room.id})
 }
 
@@ -222,6 +234,7 @@ func (l *Lobby) onLeaveRoom(session *cproto.Session, _ *Empty) {
 		l.Call(room.PathString(), "offline", &UIDReq{UID: int64(session.Uid)})
 	}
 
+	l.publishIndex()
 	agent.SetData("roomId", "")
 }
 
@@ -239,6 +252,7 @@ func (l *Lobby) onRemove(req *JoinReq) {
 
 	delete(l.rooms, req.RoomID)
 	room.Exit()
+	l.publishIndex()
 }
 
 func (l *Lobby) newRoomID() string {
