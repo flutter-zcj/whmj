@@ -12,6 +12,7 @@ package room
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 	"strconv"
 	"time"
@@ -30,7 +31,7 @@ type Config struct {
 
 func DefaultConfig() Config {
 	return Config{
-		TurnMS:    30 * time.Second,
+		TurnMS:    12 * time.Second, // 单回合 12 秒，超时系统代打
 		BotDelay:  850 * time.Millisecond,
 		SettleMS:  6 * time.Second,
 		OfflineMS: 60 * time.Second,
@@ -107,6 +108,10 @@ type Room struct {
 	outs [4]*protocol.OutView
 	tips []protocol.TipView
 
+	// 当前计时所属座位与截止时间，用于 sync 下发准确的剩余秒数
+	turnSeat int
+	turnAt   time.Time
+
 	RoundNo    int
 	LastActive time.Time
 	CreatedAt  time.Time
@@ -126,6 +131,7 @@ func New(id string, cfg Config, hooks Hooks) *Room {
 		cfg:        cfg,
 		hooks:      hooks,
 		tokens:     map[string]int64{},
+		turnSeat:   -1,
 		LastActive: time.Now(),
 		CreatedAt:  time.Now(),
 	}
@@ -380,6 +386,8 @@ func (r *Room) Start() string {
 	r.Table.Deal()
 	r.RoundNo++
 	r.outs = [4]*protocol.OutView{}
+	r.turnSeat = -1
+	r.turnAt = time.Time{}
 	r.Status = StatusPlaying
 	r.StartedAt = time.Now()
 	r.SyncAll()
@@ -420,10 +428,49 @@ func (r *Room) tick() {
 		return
 	}
 	if !p.Online || p.Bot {
+		// 电脑/托管不需要限时，避免 sync 里给真人显示倒计时
+		r.turnSeat = -1
+		r.turnAt = time.Time{}
 		r.scheduleTimer(TimerBot, r.cfg.BotDelay)
 	} else {
+		r.turnSeat = seat
+		r.turnAt = time.Now().Add(r.cfg.TurnMS)
 		r.scheduleTimer(TimerTurn, r.cfg.TurnMS)
 	}
+}
+
+/* ---------------- 回合限时 ---------------- */
+
+// turnLeft 本回合剩余秒数；尚未开始计时（tick 还没跑）时给满值
+func (r *Room) turnLeft(seat int) int {
+	full := int(r.cfg.TurnMS / time.Second)
+	if full < 1 {
+		full = 1
+	}
+	if r.turnSeat != seat || r.turnAt.IsZero() {
+		return full
+	}
+	left := int(math.Ceil(time.Until(r.turnAt).Seconds()))
+	if left < 0 {
+		left = 0
+	}
+	if left > full {
+		left = full
+	}
+	return left
+}
+
+// smallestCard 手牌里最小的一张（按当前级牌算权重）
+func (r *Room) smallestCard(seat int) int {
+	hand := r.Table.Seats[seat].Hand
+	level := r.Table.LevelOf(seat)
+	best := hand[0]
+	for _, c := range hand[1:] {
+		if game.Weight(c, level) < game.Weight(best, level) {
+			best = c
+		}
+	}
+	return best
 }
 
 func (r *Room) botPlay(seat int) {
@@ -434,7 +481,7 @@ func (r *Room) botPlay(seat int) {
 	r.applyPlay(seat, cards)
 }
 
-// autoPlay 超时自动：能压就压（最小），否则过
+// autoPlay 超时托管：能压就压（最小），否则过；无论 AI 结果如何都保证回合推进
 func (r *Room) autoPlay(seat int) {
 	if r.Table == nil || r.Status != StatusPlaying || r.Table.CurrentSeat != seat {
 		return
@@ -444,7 +491,41 @@ func (r *Room) autoPlay(seat int) {
 		defer func() { recover() }()
 		cards = game.AIChoose(r.Table, seat)
 	}()
-	r.applyPlay(seat, cards)
+	// 提示随本次 sync 一起下发，前端据此告诉自己「超时已托管」
+	r.markTimeout(seat)
+	if r.applyPlay(seat, cards) == "" {
+		return
+	}
+	r.retractTimeout()
+	// AI 没给出合法牌（先手必须出牌等）：退化成最小单张，避免整桌卡住
+	if r.Table.CurrentSeat != seat {
+		return
+	}
+	if r.Table.LastPlaySeat == seat || r.Table.LastPlaySeat == -1 {
+		if len(r.Table.Seats[seat].Hand) > 0 {
+			r.markTimeout(seat)
+			if r.applyPlay(seat, []int{r.smallestCard(seat)}) == "" {
+				return
+			}
+			r.retractTimeout()
+		}
+	}
+	if r.applyPlay(seat, nil) != "" {
+		// 连过牌都不合法（理论上不会发生）：重新计时兜底，绝不让牌局停在这一手
+		r.tick()
+	}
+}
+
+// markTimeout 记一条超时托管提示，随下一次 sync 发出
+func (r *Room) markTimeout(seat int) {
+	r.tips = append(r.tips, protocol.TipView{Seat: seat, Type: "timeout"})
+}
+
+// retractTimeout 出牌失败时撤回刚才的提示，避免下次 sync 误报
+func (r *Room) retractTimeout() {
+	if n := len(r.tips); n > 0 {
+		r.tips = r.tips[:n-1]
+	}
 }
 
 // Play 玩家出牌请求
@@ -520,6 +601,8 @@ func (r *Room) finishRound() {
 		}
 	}()
 	r.Status = StatusSettled
+	r.turnSeat = -1
+	r.turnAt = time.Time{}
 	if res == nil {
 		res = &game.SettleResult{WinnerTeam: 1, UpLevel: 1, Ranks: []int{1, 2, 3, 4}}
 	}
@@ -592,6 +675,8 @@ func (r *Room) onSettleTimeout() {
 			// 有人走了且没补位 → 回到等待房间，等房主加电脑或真人进房
 			r.Status = StatusWaiting
 			r.outs = [4]*protocol.OutView{}
+			r.turnSeat = -1
+			r.turnAt = time.Time{}
 			r.SyncAll()
 			return
 		}
@@ -723,8 +808,8 @@ func (r *Room) StateFor(seat int) *protocol.SyncResp {
 
 	turnLeft := 0
 	if r.Status == StatusPlaying && r.Players[seat] != nil && currentSeat == seat && !r.Players[seat].Bot {
-		// 由 actor 层按 tick 时间填充更精确的值，这里给满值兜底
-		turnLeft = int(r.cfg.TurnMS / time.Second)
+		// 轮到该座位且是真人：按本回合截止时间算剩余秒数（未开始计时则给满值）
+		turnLeft = r.turnLeft(seat)
 	}
 
 	resp := &protocol.SyncResp{
@@ -745,7 +830,6 @@ func (r *Room) StateFor(seat int) *protocol.SyncResp {
 		Tips:         append([]protocol.TipView{}, r.tips...),
 		TurnLeft:     turnLeft,
 	}
-	r.tips = nil
 	return resp
 }
 
@@ -770,6 +854,8 @@ func (r *Room) SyncAll() {
 			r.hooks.Send(i, protocol.MidSync, r.StateFor(i))
 		}
 	}
+	// 提示逐座位下发完再清，否则只有第一个在线玩家能收到（超时托管、头游播报都依赖它）
+	r.tips = nil
 }
 
 // SendTo 给单个座位推送

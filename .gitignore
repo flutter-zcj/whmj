@@ -15,3 +15,6 @@ deploy/sandbox/whmj/
 deploy/sandbox/whmj-server
 deploy/sandbox/config/
 deploy/sandbox/gd-server
+
+# 验收截图仅本地留档，不入库
+screenshots/

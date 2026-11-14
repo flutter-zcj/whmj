@@ -49,6 +49,10 @@ const BTN_X = { pass: 806, hint: 986, play: 1166 };
 const HAND_HIT_TOP = 508;
 const HAND_HIT_BOTTOM = H - 2;
 
+/* 出牌倒计时：放在左侧信息区（"轮到你了 / 待压"）下方，不遮挡牌与按钮 */
+const TIMER_X = 180;
+const TIMER_Y = 496;
+
 export default class GuandanScene extends Phaser.Scene {
   constructor() {
     super('guandan');
@@ -76,6 +80,10 @@ export default class GuandanScene extends Phaser.Scene {
     this.waiting = false;
     this.panel = null;
 
+    // 出牌限时（服务端 12 秒，超时系统代打）：本地按截止时间做倒计时展示
+    this.turnDeadline = 0;
+    this.turnTotal = 0;
+
     this.buildTextures();
     // 原版牌桌底图（1280x800 等比铺满；加载失败回退程序化桌布）
     if (this.textures.exists('ui_table')) {
@@ -95,6 +103,7 @@ export default class GuandanScene extends Phaser.Scene {
     this.buildInfo();
     this.buildButtons();
     this.buildHandInput();
+    this.buildTurnTimer();
 
     this.events.once('shutdown', () => { if (this.net) this.net.close(); });
 
@@ -149,6 +158,13 @@ export default class GuandanScene extends Phaser.Scene {
     const mySeat = (this.net && this.net.seat >= 0) ? this.net.seat : 0;
     const map = [(mySeat + 0) % 4, (mySeat + 1) % 4, (mySeat + 2) % 4, (mySeat + 3) % 4];
     this.viewMap = map;
+
+    // 超时托管提示：服务端代打时随身位下发 tip
+    (m.tips || []).forEach((tip) => {
+      if (tip.type === 'timeout' && tip.seat === mySeat) {
+        this.toast('超时了，系统已替你出牌', '#ff9c8a');
+      }
+    });
 
     const t = this.table;
     t.step = m.step;
@@ -205,6 +221,7 @@ export default class GuandanScene extends Phaser.Scene {
       this.hintList = [];
       this.hintIdx = -1;
       this.txtTip.setAlpha(0);
+      this.stopTurnTimer();
       this.enterWaiting(m);
       return;
     }
@@ -216,12 +233,20 @@ export default class GuandanScene extends Phaser.Scene {
 
     if (m.status === 'settled') {
       // 结算面板由 settle 消息驱动；若是重连后收到，补一个面板
+      this.stopTurnTimer();
       this.renderAll();
       if (!this.panel && m.ranks) this.rebuildSettlePanel(m);
       return;
     }
     if (this.panel) { this.panel.destroy(); this.panel = null; }
     this.renderAll();
+
+    // 出牌限时：轮到自己才起倒计时，剩余秒数由服务端按回合截止时间给出
+    if (m.step === 'play' && m.currentSeat === mySeat && m.turnLeft > 0) {
+      this.startTurnTimer(m.turnLeft);
+    } else {
+      this.stopTurnTimer();
+    }
   }
 
   /** 房间回到等待态：选人/加电脑交给房间页，这里只通知页面切回去 */
@@ -246,6 +271,7 @@ export default class GuandanScene extends Phaser.Scene {
 
   onRemoteSettle(m) {
     this.settle = m;
+    this.stopTurnTimer();
     const lines = [];
     lines.push(m.winnerTeam === 1 ? '本方胜！' : '对方胜');
     if (m.doubleDown) lines.push('双下');
@@ -430,6 +456,67 @@ export default class GuandanScene extends Phaser.Scene {
     this.txtToast.setText(msg).setColor(color || '#ffd76a').setAlpha(1).setDepth(300);
     this.tweens.killTweensOf(this.txtToast);
     this.tweens.add({ targets: this.txtToast, alpha: 0, delay: 1200, duration: 600 });
+  }
+
+  /* ---------------- 出牌限时（超时托管） ---------------- */
+
+  /** 左侧信息区下方的倒计时：圆环随剩余时间收缩，最后 3 秒转红 */
+  buildTurnTimer() {
+    this.timerArc = this.add.graphics().setDepth(58);
+    this.timerText = this.add.text(TIMER_X + 20, TIMER_Y, '', {
+      fontFamily: '"Microsoft YaHei",sans-serif', fontSize: '19px',
+      color: '#ffd76a', stroke: '#06200f', strokeThickness: 4
+    }).setOrigin(0, 0.5).setDepth(58).setVisible(false);
+
+    // 每 100ms 重绘一次，比逐帧更省，也比整秒跳变更顺
+    this.time.addEvent({ delay: 100, loop: true, callback: () => this.tickTurnTimer() });
+  }
+
+  /** 轮到自己：按服务端下发的剩余秒数起算 */
+  startTurnTimer(sec) {
+    if (!sec || sec <= 0) {
+      this.stopTurnTimer();
+      return;
+    }
+    this.turnTotal = sec;
+    this.turnDeadline = this.time.now + sec * 1000;
+    this.timerText.setVisible(true);
+    this.tickTurnTimer();
+  }
+
+  stopTurnTimer() {
+    this.turnDeadline = 0;
+    this.turnTotal = 0;
+    if (this.timerText) this.timerText.setVisible(false);
+    if (this.timerArc) this.timerArc.clear();
+  }
+
+  tickTurnTimer() {
+    if (!this.turnDeadline) return;
+    const left = Math.max(0, this.turnDeadline - this.time.now);
+    const sec = Math.ceil(left / 1000);
+    const ratio = this.turnTotal > 0 ? left / (this.turnTotal * 1000) : 0;
+    const urgent = sec <= 3;
+    const color = urgent ? 0xff7a6a : 0xffd76a;
+
+    const g = this.timerArc;
+    g.clear();
+    g.lineStyle(3, color, 0.26);
+    g.strokeCircle(TIMER_X + 7, TIMER_Y, 9);
+    if (ratio > 0) {
+      g.lineStyle(3, color, 1);
+      g.beginPath();
+      g.arc(TIMER_X + 7, TIMER_Y, 9, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * ratio, false);
+      g.strokePath();
+    }
+    this.timerText.setText('出牌倒计时 ' + sec + ' 秒').setColor(urgent ? '#ff9c8a' : '#ffd76a');
+
+    if (left <= 0) {
+      // 交给服务端代打，等下一次 sync 覆盖；这里只留一行状态，避免和 sync 的提示重复
+      this.turnDeadline = 0;
+      this.timerArc.clear();
+      this.timerText.setText('时间到，已托管').setColor('#ff9c8a').setVisible(true);
+    }
   }
 
   /* ---------------- 按钮 ---------------- */
@@ -781,6 +868,7 @@ export default class GuandanScene extends Phaser.Scene {
       if (this.audio) this.audio.playCards(p);
       this.net.play(cards);
       this.clearSelection();
+      this.stopTurnTimer();
       return;
     }
 
@@ -802,6 +890,7 @@ export default class GuandanScene extends Phaser.Scene {
       if (this.audio) this.audio.pass();
       this.net.pass();
       this.clearSelection();
+      this.stopTurnTimer();
       return;
     }
 
